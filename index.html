@@ -1,0 +1,2930 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROCO'S Time</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud-config.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7f6;
+      --panel: #fff;
+      --ink: #202520;
+      --muted: #66736c;
+      --line: #d8dfda;
+      --green: #236b48;
+      --green-soft: #e5f2eb;
+      --blue: #2d638d;
+      --blue-soft: #e6eef7;
+      --red: #9b423b;
+      --red-soft: #f8e8e6;
+      --amber: #8a6425;
+      --amber-soft: #f5eddb;
+      --shadow: 0 14px 34px rgba(31, 38, 34, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Yu Gothic", "Meiryo", system-ui, sans-serif;
+      line-height: 1.5;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; border: 1px solid transparent; }
+
+    .login-screen {
+      align-items: center;
+      background: var(--bg);
+      display: grid;
+      inset: 0;
+      padding: 18px;
+      position: fixed;
+      z-index: 30;
+    }
+    .login-screen[hidden] { display: none; }
+    .login-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 14px;
+      margin: auto;
+      max-width: 430px;
+      padding: 22px;
+      width: 100%;
+    }
+    .login-box label {
+      color: var(--muted);
+      display: grid;
+      font-weight: 800;
+      gap: 6px;
+    }
+    .login-box input {
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      min-height: 52px;
+      padding: 8px 10px;
+    }
+    #loginMessage {
+      color: var(--red);
+      font-weight: 800;
+      min-height: 22px;
+    }
+    body.punch-only .tabs,
+    body.punch-only header .row {
+      display: none;
+    }
+
+    .app {
+      width: min(1220px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 24px 0 46px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 48px);
+      letter-spacing: 0;
+    }
+    h2, h3 { margin: 0 0 12px; }
+    .lead {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+    .tabs, .subtabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .tab, .subtab {
+      min-height: 52px;
+      border-radius: 8px 8px 0 0;
+      padding: 0 18px;
+      background: transparent;
+      border-color: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 17px;
+    }
+    .tab.active, .subtab.active {
+      background: var(--panel);
+      border-color: var(--line);
+      border-bottom-color: var(--panel);
+      color: var(--green);
+      transform: translateY(1px);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .hidden { display: none !important; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .three {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .wide-field {
+      grid-column: 1 / -1;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #3f4843;
+    }
+    input, select, textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 3px solid rgba(35, 107, 72, .18);
+      border-color: var(--green);
+    }
+    .unit-input {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .unit-input input {
+      border: 0;
+      border-radius: 0;
+    }
+    .unit-input span {
+      padding: 0 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .clock {
+      text-align: center;
+      padding: 22px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      margin-bottom: 16px;
+    }
+    .clock-date { color: var(--muted); font-weight: 700; }
+    .clock-time {
+      font-size: clamp(44px, 10vw, 82px);
+      font-weight: 800;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+    .punch-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .punch-btn {
+      min-height: 112px;
+      border-radius: 8px;
+      font-size: clamp(26px, 5vw, 38px);
+      font-weight: 800;
+    }
+    .punch-in { background: var(--green); border-color: var(--green); color: #fff; }
+    .punch-out { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .btn {
+      min-height: 42px;
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #fff;
+      border-color: var(--line);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+    .btn.danger { color: var(--red); }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .notice {
+      min-height: 24px;
+      margin-top: 12px;
+      color: var(--green);
+      font-weight: 700;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 88px;
+      background: #fbfcfb;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 22px;
+      word-break: break-word;
+    }
+    .metric.green { background: var(--green-soft); border-color: #b9d8c3; }
+    .metric.blue { background: var(--blue-soft); border-color: #bfd1e7; }
+    .metric.amber { background: var(--amber-soft); border-color: #e4cf9e; }
+    .metric.red { background: var(--red-soft); border-color: #ead0cc; }
+    .pay-hero {
+      border: 2px solid var(--green);
+      border-radius: 8px;
+      background: var(--green-soft);
+      padding: 16px;
+      margin: 14px 0;
+    }
+    .pay-hero span {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .pay-hero strong {
+      display: block;
+      margin-top: 4px;
+      font-size: clamp(32px, 6vw, 46px);
+      line-height: 1.1;
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+    }
+    .payslip-top {
+      display: grid;
+      grid-template-columns: 1fr minmax(260px, auto);
+      gap: 14px;
+      align-items: stretch;
+      margin-bottom: 12px;
+    }
+    .payslip-person {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+    .payslip-person h2 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+    .payslip-person strong {
+      display: block;
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1.05;
+      word-break: break-word;
+    }
+    .payslip-net {
+      margin: 0;
+      text-align: right;
+      display: grid;
+      align-content: center;
+    }
+    .payslip-section-row th,
+    .payslip-section-row td {
+      background: #eef2eb;
+      color: #334139;
+      font-weight: 800;
+      text-align: left;
+    }
+    .payslip-total-row th,
+    .payslip-total-row td {
+      font-weight: 800;
+      background: #f7faf8;
+    }
+    .payslip-net-row th,
+    .payslip-net-row td {
+      background: var(--green-soft);
+      border-top: 2px solid var(--green);
+      border-bottom: 2px solid var(--green);
+      font-weight: 900;
+      font-size: 1.18em;
+    }
+    .payslip-leave-row th,
+    .payslip-leave-row td {
+      border-top: 8px solid #fff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px;
+      text-align: left;
+      vertical-align: middle;
+      word-break: break-word;
+    }
+    th {
+      background: #eef2eb;
+      color: #414a3f;
+      font-size: 12px;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .day-name {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      padding: 8px 0;
+    }
+    .day-card {
+      min-height: 178px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+    .day-card.muted { opacity: .42; }
+    .day-number {
+      font-weight: 800;
+      color: var(--green);
+      font-size: 20px;
+    }
+    .shift-chip {
+      border: 0;
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: var(--green-soft);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 13px;
+      font: inherit;
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: left;
+    }
+    .shift-chip.open {
+      background: var(--red-soft);
+      color: var(--red);
+      font-weight: 700;
+    }
+    .employee-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .employee-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fbfcfb;
+    }
+    .document {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      min-height: 520px;
+    }
+    .document h2 { text-align: center; margin-bottom: 22px; }
+    .document p { margin: 10px 0; }
+    .profile-head {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+    .profile-photo {
+      width: 140px;
+      aspect-ratio: 3 / 4;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      object-fit: cover;
+      background: #f3f5f3;
+    }
+    .profile-photo.empty-photo {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 8px;
+    }
+    .contract-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 18px;
+    }
+    .contract-grid p {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+    }
+    .insurance-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .insurance-row p {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      margin: 0;
+    }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .signature-box {
+      border: 1px solid var(--ink);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 150px;
+    }
+    .signature-box h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    .yn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .yn-btn {
+      min-height: 38px;
+      min-width: 58px;
+      border-radius: 8px;
+      border-color: var(--line);
+      background: #fff;
+      font-weight: 700;
+    }
+    .yn-btn.active {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+    .empty {
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+    }
+    .small-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    @media (max-width: 980px) {
+      header, .grid, .three, .summary-grid {
+        grid-template-columns: 1fr;
+      }
+      header { align-items: flex-start; }
+      table { min-width: 980px; }
+      .table-wrap { overflow-x: auto; }
+      .calendar { grid-template-columns: 1fr; }
+      .day-name { display: none; }
+      .employee-item { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .app { width: min(100% - 18px, 1220px); }
+      .punch-actions { grid-template-columns: 1fr; }
+      .tab, .subtab { flex: 1; padding: 0 10px; }
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      @page monthlyLandscape {
+        size: A4 landscape;
+        margin: 8mm;
+      }
+      @page payslipLandscape {
+        size: A4 landscape;
+        margin: 8mm;
+      }
+      body.print-monthly {
+        page: monthlyLandscape;
+      }
+      body.print-payslip {
+        page: payslipLandscape;
+      }
+      body { background: #fff; }
+      header, .tabs, .subtabs, .no-print { display: none !important; }
+      .app { width: 100%; padding: 0; }
+      .panel { box-shadow: none; border: 0; }
+      table { min-width: 0; font-size: 11px; }
+      th, td { padding: 6px; }
+      .document { border: 0; }
+      body.print-employee-card main > *:not(#printOnlyEmployeeCard),
+      body.print-contract main > *:not(#printOnlyContract),
+      body.print-payslip main > *:not(#printOnlyPayslip) { display: none !important; }
+      #printOnlyEmployeeCard, #printOnlyContract, #printOnlyPayslip { display: block !important; }
+      body.print-employee-card .document,
+      body.print-contract .document {
+        page-break-after: avoid;
+        page-break-before: avoid;
+        width: 194mm;
+        min-height: 281mm;
+        max-height: 281mm;
+        overflow: hidden;
+        font-size: 10px;
+        line-height: 1.22;
+        padding: 0;
+      }
+      body.print-contract .document {
+        font-size: 8.4px;
+        line-height: 1.08;
+      }
+      body.print-contract .contract-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2px 8px;
+      }
+      body.print-contract .contract-grid p,
+      body.print-employee-card .contract-grid p { margin: 2px 0; padding-bottom: 2px; }
+      body.print-contract .document h2,
+      body.print-employee-card .document h2 { margin-bottom: 6px; font-size: 17px; }
+      body.print-contract .document p { margin: 3px 0; }
+      body.print-contract .insurance-row {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        margin: 4px 0;
+      }
+      body.print-contract .insurance-row p {
+        padding: 4px;
+        border-radius: 4px;
+      }
+      body.print-contract .signature-grid {
+        gap: 8px;
+        margin-top: 6px;
+      }
+      body.print-contract .signature-box {
+        min-height: 76px;
+        padding: 6px;
+        border-radius: 4px;
+      }
+      body.print-contract .signature-box h3 {
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      body.print-employee-card .profile-head {
+        grid-template-columns: 120px 1fr;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      body.print-employee-card .profile-photo {
+        width: 120px;
+      }
+      body.print-employee-card .contract-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 3px 12px;
+      }
+      body.print-employee-card .wide-print {
+        grid-column: 1 / -1;
+      }
+      body.print-employee-card h3 { margin: 8px 0 4px; }
+      body.print-employee-card .profile-name {
+        font-size: 14px;
+      }
+      body.print-payslip .panel {
+        padding: 0;
+      }
+      #printOnlyPayslip {
+        width: 281mm;
+      }
+      body.print-payslip .payslip-sheet {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3mm;
+        align-items: flex-start;
+      }
+      body.print-payslip .payslip-card {
+        width: calc(50% - 1.5mm);
+        min-height: 0;
+        max-height: 185mm;
+        overflow: hidden;
+        page-break-inside: avoid;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 2.5mm;
+        font-size: 6.7px;
+        line-height: 1.05;
+      }
+      body.print-payslip .payslip-card:nth-child(2n):not(:last-child) {
+        page-break-after: always;
+      }
+      body.print-payslip .pay-hero {
+        margin: 0;
+        padding: 4px;
+        min-width: 34mm;
+      }
+      body.print-payslip .pay-hero strong {
+        font-size: 16px;
+      }
+      body.print-payslip .payslip-top {
+        grid-template-columns: 1fr 34mm;
+        gap: 2mm;
+        margin-bottom: 2px;
+      }
+      body.print-payslip .payslip-person {
+        padding: 4px;
+      }
+      body.print-payslip .payslip-person h2 {
+        font-size: 10px;
+        margin-bottom: 2px;
+      }
+      body.print-payslip .payslip-person strong {
+        font-size: 18px;
+      }
+      body.print-payslip .summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        margin-bottom: 3px;
+      }
+      body.print-payslip .metric {
+        min-height: 25px;
+        padding: 3px;
+      }
+      body.print-payslip .metric span {
+        font-size: 6px;
+      }
+      body.print-payslip .metric strong {
+        font-size: 9px;
+        margin-top: 1px;
+      }
+      body.print-payslip table {
+        font-size: 6.5px;
+      }
+      body.print-payslip th,
+      body.print-payslip td {
+        padding: 1px 2px;
+      }
+      body.print-payslip h2,
+      body.print-payslip h3,
+      body.print-payslip p {
+        margin-top: 1px;
+        margin-bottom: 1px;
+      }
+      body.print-payslip .shift-chip,
+      body.print-payslip .empty {
+        padding: 2px;
+      }
+      body.print-monthly {
+        width: 281mm;
+      }
+      body.print-monthly table {
+        font-size: 8px;
+      }
+      body.print-monthly th,
+      body.print-monthly td {
+        padding: 3px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-screen" id="loginScreen" hidden>
+    <form class="login-box" id="loginForm">
+      <h1>ROCO'S Time</h1>
+      <p class="lead">iPadとパソコンで同じ勤務データを使います。</p>
+      <label>
+        メールアドレス
+        <input id="loginEmail" type="email" autocomplete="username" required>
+      </label>
+      <label>
+        パスワード
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn primary" type="submit">ログイン</button>
+      <p id="loginMessage"></p>
+    </form>
+  </div>
+  <main class="app">
+    <header>
+      <div>
+        <h1>ROCO'S Time</h1>
+        <p class="lead">打刻、勤務確認、従業員名簿、雇用契約書、給料明細、税理士提出データをまとめます。</p>
+      </div>
+      <div class="row no-print">
+        <button class="btn" id="cloudSyncStatus" type="button">端末保存</button>
+        <button class="btn" id="logoutButton" type="button" hidden>ログアウト</button>
+        <button class="btn" id="backupJson" type="button">バックアップ</button>
+        <label class="btn" for="restoreJson">復元</label>
+        <input id="restoreJson" type="file" accept="application/json" hidden>
+      </div>
+    </header>
+
+    <nav class="tabs no-print" aria-label="画面切替">
+      <button class="tab active" type="button" data-main-page="punch">iPad打刻</button>
+      <button class="tab" type="button" data-main-page="admin">パソコン管理</button>
+    </nav>
+
+    <section id="punchPage" class="grid">
+      <div class="panel">
+        <div class="clock">
+          <div class="clock-date" id="clockDate"></div>
+          <div class="clock-time" id="clockTime"></div>
+        </div>
+        <div class="field">
+          <label for="punchEmployee">従業員</label>
+          <select id="punchEmployee"></select>
+        </div>
+        <div class="punch-actions">
+          <button class="punch-btn punch-in" id="clockIn" type="button">出勤した</button>
+          <button class="punch-btn punch-out" id="clockOut" type="button">退勤した</button>
+        </div>
+        <div class="notice" id="punchNotice" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="panel">
+        <h2>今日の打刻</h2>
+        <div id="todayPunches"></div>
+      </div>
+
+      <section class="panel">
+        <h2>今日の予定</h2>
+        <div class="three">
+          <div class="field">
+            <label for="scheduleDate">日付</label>
+            <input id="scheduleDate" type="date">
+          </div>
+          <div class="field">
+            <label for="scheduleTime">時間</label>
+            <input id="scheduleTime" type="time">
+          </div>
+          <div class="field">
+            <label for="scheduleEmployee">担当</label>
+            <select id="scheduleEmployee"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="scheduleTitle">予定</label>
+          <input id="scheduleTitle" type="text" placeholder="例: 送迎、面談、納品、買い出し">
+        </div>
+        <div class="field">
+          <label for="scheduleMemo">メモ</label>
+          <input id="scheduleMemo" type="text" placeholder="任意">
+        </div>
+        <div class="row">
+          <button class="btn primary" id="addSchedule" type="button">予定を追加</button>
+        </div>
+        <div class="notice" id="scheduleNotice" role="status" aria-live="polite"></div>
+        <div id="todaySchedules" style="margin-top:12px;"></div>
+      </section>
+
+      <section class="panel">
+        <h2>今月の予定カレンダー</h2>
+        <div class="field no-print">
+          <label for="punchScheduleMonth">月</label>
+          <input id="punchScheduleMonth" type="month">
+        </div>
+        <div class="calendar" id="punchScheduleCalendar"></div>
+      </section>
+    </section>
+
+    <section id="adminPage" class="hidden">
+      <nav class="subtabs no-print" aria-label="管理画面">
+        <button class="subtab active" type="button" data-admin-page="calendar">カレンダー確認</button>
+        <button class="subtab" type="button" data-admin-page="employees">従業員設定・名簿・契約書</button>
+        <button class="subtab" type="button" data-admin-page="payslip">個人給料明細</button>
+        <button class="subtab" type="button" data-admin-page="monthly">月次給与・税理士提出</button>
+      </nav>
+
+      <section id="calendarPage">
+        <div class="panel no-print">
+          <div class="three">
+            <div class="field">
+              <label for="calendarMonth">月</label>
+              <input id="calendarMonth" type="month">
+            </div>
+            <div class="field">
+              <label for="calendarEmployee">従業員</label>
+              <select id="calendarEmployee"></select>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="addManualShift" type="button">勤務を手入力で追加</button>
+            </div>
+          </div>
+        </div>
+        <section class="panel" style="margin-top:18px;">
+          <h2>勤務カレンダー</h2>
+          <div class="summary-grid" id="calendarSummary"></div>
+          <div class="calendar" id="calendarGrid"></div>
+        </section>
+      </section>
+
+      <section id="employeesPage" class="hidden">
+        <div class="grid">
+          <section class="panel no-print">
+            <h2>従業員情報</h2>
+            <input id="employeeId" type="hidden">
+            <div class="three">
+              <div class="field">
+                <label for="employeeName">氏名</label>
+                <input id="employeeName" type="text" placeholder="例: 山田 花子">
+              </div>
+              <div class="field">
+                <label for="furigana">フリガナ</label>
+                <input id="furigana" type="text" placeholder="例: ヤマダ ハナコ">
+              </div>
+              <div class="field">
+                <label for="gender">性別</label>
+                <select id="gender">
+                  <option value="">未設定</option>
+                  <option value="女性">女性</option>
+                  <option value="男性">男性</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="employeePhoto">写真</label>
+                <input id="employeePhoto" type="file" accept="image/*" capture="environment">
+              </div>
+              <div class="field">
+                <label for="birthDate">生年月日</label>
+                <input id="birthDate" type="date">
+              </div>
+              <div class="field">
+                <label for="domicile">本籍</label>
+                <input id="domicile" type="text" placeholder="例: 兵庫県">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field wide-field">
+                <label for="currentAddress">現住所</label>
+                <input id="currentAddress" type="text" placeholder="例: 兵庫県加古川市...">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="phoneNumber">電話番号</label>
+                <input id="phoneNumber" type="tel" placeholder="例: 090-0000-0000">
+              </div>
+              <div class="field">
+                <label for="spouse">配偶者</label>
+                <select id="spouse">
+                  <option value="">未設定</option>
+                  <option value="有">有</option>
+                  <option value="無">無</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dependents">扶養</label>
+                <div class="unit-input">
+                  <input id="dependents" type="number" min="0" step="1" placeholder="0">
+                  <span>人</span>
+                </div>
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="emergencyContactName">緊急連絡先 名前（続柄）</label>
+                <input id="emergencyContactName" type="text" placeholder="例: 山田 太郎（夫）">
+              </div>
+              <div class="field">
+                <label for="emergencyContactPhone">緊急連絡先 電話番号</label>
+                <input id="emergencyContactPhone" type="tel" placeholder="例: 090-0000-0000">
+              </div>
+              <div class="field">
+                <label for="qualification">資格・免許</label>
+                <input id="qualification" type="text" placeholder="例: 普通自動車免許">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="hourlyWage">時給</label>
+                <div class="unit-input">
+                  <input id="hourlyWage" type="number" min="0" step="1" placeholder="例: 1100">
+                  <span>円</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="jobAllowance">職務手当/月</label>
+                <div class="unit-input">
+                  <input id="jobAllowance" type="number" min="0" step="1" placeholder="例: 10000">
+                  <span>円</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="hireDate">雇用年月日</label>
+                <input id="hireDate" type="date">
+              </div>
+              <div class="field">
+                <label for="position">業務の種類</label>
+                <input id="position" type="text" placeholder="例: 生活支援員">
+              </div>
+              <div class="field">
+                <label for="terminationInfo">解雇・退職など</label>
+                <input id="terminationInfo" type="text" placeholder="例: 在職中 / 退職日など">
+              </div>
+              <div class="field">
+                <label for="standardHours">標準勤務時間/日</label>
+                <div class="unit-input">
+                  <input id="standardHours" type="number" min="0" step="0.25" placeholder="例: 6">
+                  <span>時間</span>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="educationHistory">学歴</label>
+              <textarea id="educationHistory" placeholder="履歴書に書く学歴"></textarea>
+            </div>
+            <div class="field">
+              <label for="careerHistory">職歴</label>
+              <textarea id="careerHistory" placeholder="履歴書に書く職歴"></textarea>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="paidLeaveTotal">有給自動付与日数</label>
+                <input id="paidLeaveTotal" type="number" min="0" step="0.5" readonly placeholder="雇用年月日から自動計算">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="paidLeaveUsed">有給使用済</label>
+                <input id="paidLeaveUsed" type="number" min="0" step="0.5" placeholder="例: 2">
+              </div>
+              <div class="field">
+                <label for="transportAllowance">交通費/月</label>
+                <input id="transportAllowance" type="number" min="0" step="1" placeholder="例: 5000">
+              </div>
+              <div class="field">
+                <label for="employeeMemo">メモ</label>
+                <input id="employeeMemo" type="text" placeholder="任意">
+              </div>
+            </div>
+            <h3 style="margin-top:18px;">給与控除（月額）</h3>
+            <div class="three">
+              <div class="field">
+                <label for="socialInsurance">社会保険</label>
+                <input id="socialInsurance" type="number" min="0" step="1" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="pensionDeduction">厚生年金</label>
+                <input id="pensionDeduction" type="number" min="0" step="1" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="careInsuranceDeduction">介護保険</label>
+                <input id="careInsuranceDeduction" type="number" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="employmentInsuranceDeduction">雇用保険料</label>
+                <input id="employmentInsuranceDeduction" type="number" min="0" step="1" readonly placeholder="自動計算">
+              </div>
+              <div class="field">
+                <label for="incomeTax">所得税</label>
+                <input id="incomeTax" type="number" min="0" step="1" readonly placeholder="自動計算">
+              </div>
+              <div class="field">
+                <label for="residentTax">住民税</label>
+                <input id="residentTax" type="number" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="childCareSupport">子供子育て支援金</label>
+                <input id="childCareSupport" type="number" min="0" step="1" readonly placeholder="自動計算">
+              </div>
+            </div>
+            <div class="field">
+              <label for="rosterRemarks">個人台帳の備考</label>
+              <textarea id="rosterRemarks" placeholder="印刷する個人台帳の一番下に表示する備考"></textarea>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="saveEmployee" type="button">保存</button>
+              <button class="btn" id="clearEmployee" type="button">クリア</button>
+            </div>
+            <div class="notice" id="employeeNotice" role="status" aria-live="polite"></div>
+          </section>
+
+          <section class="panel">
+            <h2>従業員名簿</h2>
+            <div class="row no-print" style="margin-bottom:12px;">
+              <div class="field" style="min-width:260px;">
+                <label for="rosterEmployee">個人台帳を印刷する従業員</label>
+                <select id="rosterEmployee"></select>
+              </div>
+              <button class="btn" id="printRoster" type="button">個人台帳を印刷</button>
+              <button class="btn" id="printContractFromRoster" type="button">雇用契約書を印刷</button>
+            </div>
+            <div id="employeeRoster"></div>
+          </section>
+        </div>
+
+        <section class="panel" style="margin-top:18px;">
+          <div class="document" id="employeeCardDocument"></div>
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+          <div class="row no-print">
+            <div class="field" style="min-width:260px;">
+              <label for="contractEmployee">雇用契約書を作る従業員</label>
+              <select id="contractEmployee"></select>
+            </div>
+            <button class="btn" id="printContract" type="button">契約書を印刷</button>
+          </div>
+          <div class="panel no-print" style="box-shadow:none;margin-bottom:14px;">
+            <h3>雇用契約書の選択項目</h3>
+            <div class="three">
+              <div class="field">
+                <label for="contractPeriodType">雇用期間</label>
+                <select id="contractPeriodType" class="contract-setting">
+                  <option value="none">定め無し</option>
+                  <option value="fixed">定め有り</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="contractPeriodStart">雇用期間 開始日</label>
+                <input id="contractPeriodStart" class="contract-setting contract-period-field" type="date">
+              </div>
+              <div class="field">
+                <label for="contractPeriodEnd">雇用期間 終了日</label>
+                <input id="contractPeriodEnd" class="contract-setting contract-period-field" type="date">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="contractTimePreset">始業・終業の時刻</label>
+                <select id="contractTimePreset" class="contract-setting">
+                  <option value="default">8:00から16:00</option>
+                  <option value="custom">手入力</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="contractStartTime">始業時刻</label>
+                <input id="contractStartTime" class="contract-setting contract-time-field" type="time">
+              </div>
+              <div class="field">
+                <label for="contractEndTime">終業時刻</label>
+                <input id="contractEndTime" class="contract-setting contract-time-field" type="time">
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="contractBreakPreset">休憩時間</label>
+                <select id="contractBreakPreset">
+                  <option value="60">60分</option>
+                  <option value="custom">手入力</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="contractBreakCustom">休憩時間を手入力</label>
+                <input id="contractBreakCustom" type="number" min="0" step="1" placeholder="例: 45">
+              </div>
+              <div class="field">
+                <label>所定以外の労働</label>
+                <div class="yn-group" data-contract-option="overtime"></div>
+              </div>
+            </div>
+            <div class="three">
+              <div class="field">
+                <label for="contractPaymentMethod">賃金の支払い方法</label>
+                <select id="contractPaymentMethod" class="contract-setting">
+                  <option value="口座振込">口座振込</option>
+                  <option value="現金手渡し">現金手渡し</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+            </div>
+            <div class="three">
+              <div class="field"><label>休日労働</label><div class="yn-group" data-contract-option="holidayWork"></div></div>
+              <div class="field"><label>控除</label><div class="yn-group" data-contract-option="deduction"></div></div>
+              <div class="field"><label>昇給</label><div class="yn-group" data-contract-option="raise"></div></div>
+            </div>
+            <div class="three">
+              <div class="field"><label>賞与</label><div class="yn-group" data-contract-option="bonus"></div></div>
+              <div class="field"><label>退職金</label><div class="yn-group" data-contract-option="retirementPay"></div></div>
+              <div class="field"><label>定年制</label><div class="yn-group" data-contract-option="retirementAge"></div></div>
+            </div>
+            <div class="three">
+              <div class="field"><label>継続雇用制度</label><div class="yn-group" data-contract-option="continuedEmployment"></div></div>
+              <div class="field"><label>契約更新</label><div class="yn-group" data-contract-option="renewal"></div></div>
+              <div class="field"><label>健康保険</label><div class="yn-group" data-contract-option="healthInsurance"></div></div>
+            </div>
+            <div class="three">
+              <div class="field"><label>厚生年金保険</label><div class="yn-group" data-contract-option="pensionInsurance"></div></div>
+              <div class="field"><label>介護保険</label><div class="yn-group" data-contract-option="careInsurance"></div></div>
+              <div class="field"><label>雇用保険</label><div class="yn-group" data-contract-option="employmentInsurance"></div></div>
+            </div>
+          </div>
+          <div class="document" id="contractDocument"></div>
+        </section>
+      </section>
+
+      <section id="payslipPage" class="hidden">
+        <div class="panel no-print">
+          <div class="three">
+            <div class="field">
+              <label for="payslipMonth">月</label>
+              <input id="payslipMonth" type="month">
+            </div>
+            <div class="field">
+              <label for="payslipEmployee">従業員</label>
+              <select id="payslipEmployee"></select>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="printPayslip" type="button">給料明細を印刷</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn" id="printAllPayslips" type="button">全員分を印刷</button>
+            </div>
+          </div>
+          <h3 style="margin-top:18px;">加算時間</h3>
+          <div class="three">
+            <div class="field">
+              <label for="overtimeHours">時間外</label>
+              <div class="unit-input">
+                <input id="overtimeHours" class="pay-extra-input" type="number" min="0" step="0.25" placeholder="0">
+                <span>時間</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="holidayHours">休日出勤</label>
+              <div class="unit-input">
+                <input id="holidayHours" class="pay-extra-input" type="number" min="0" step="0.25" placeholder="0">
+                <span>時間</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="nightHours">深夜労働</label>
+              <div class="unit-input">
+                <input id="nightHours" class="pay-extra-input" type="number" min="0" step="0.25" placeholder="0">
+                <span>時間</span>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="savePayExtras" type="button">加算時間を保存</button>
+            <span class="small-note">加算額は 時給 × 1.25 × 時間 で計算します。</span>
+          </div>
+          <h3 style="margin-top:18px;">有給消化</h3>
+          <div class="three">
+            <div class="field">
+              <label for="monthlyPaidLeaveDays">今月の有給消化</label>
+              <div class="unit-input">
+                <input id="monthlyPaidLeaveDays" class="pay-extra-input" type="number" min="0" step="1" placeholder="0">
+                <span>日</span>
+              </div>
+            </div>
+            <div class="field wide-field">
+              <label for="paidLeaveDates">有給を使った日</label>
+              <input id="paidLeaveDates" class="pay-extra-input" type="text" placeholder="例: 5/10、5/24">
+            </div>
+          </div>
+        </div>
+        <section class="panel" id="payslipPrintArea" style="margin-top:18px;">
+          <div id="payslipDetail"></div>
+        </section>
+      </section>
+
+      <section id="monthlyPage" class="hidden">
+        <div class="panel no-print">
+          <div class="three">
+            <div class="field">
+              <label for="monthlyMonth">月</label>
+              <input id="monthlyMonth" type="month">
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="exportMonthlyCsv" type="button">税理士提出CSV</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn" id="printMonthly" type="button">月次給与を印刷</button>
+            </div>
+          </div>
+        </div>
+        <section class="panel" style="margin-top:18px;">
+          <h2 id="monthlyReportTitle">給与集計表</h2>
+          <div class="summary-grid" id="monthlySummary"></div>
+          <div class="table-wrap" id="monthlyPayrollTable"></div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div class="hidden" id="printOnlyEmployeeCard"></div>
+  <div class="hidden" id="printOnlyContract"></div>
+  <div class="hidden" id="printOnlyPayslip"></div>
+
+  <script>
+    const storageKey = "rocos-time-v2";
+    const oldStorageKey = "rocos-time-v1";
+    const contractSettingsKey = "rocos-time-contract-settings-v1";
+    const cloudStateId = "rocos-time-main";
+    const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
+    const timeFormat = new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    const dateFormat = new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+
+    let state = loadState();
+    let activeMainPage = "punch";
+    let activeAdminPage = "calendar";
+    let pendingPhoto = "";
+    let contractSettings = loadContractSettings();
+    let cloudClient = null;
+    let cloudMode = false;
+    let syncTimer = null;
+    const punchOnlyMode = new URLSearchParams(location.search).get("mode") === "punch";
+
+    const loginScreen = document.getElementById("loginScreen");
+    const loginForm = document.getElementById("loginForm");
+    const loginMessage = document.getElementById("loginMessage");
+    const logoutButton = document.getElementById("logoutButton");
+    const cloudSyncStatus = document.getElementById("cloudSyncStatus");
+    const clockDate = document.getElementById("clockDate");
+    const clockTime = document.getElementById("clockTime");
+    const punchEmployee = document.getElementById("punchEmployee");
+    const punchNotice = document.getElementById("punchNotice");
+    const todayPunches = document.getElementById("todayPunches");
+    const scheduleDate = document.getElementById("scheduleDate");
+    const scheduleTime = document.getElementById("scheduleTime");
+    const scheduleEmployee = document.getElementById("scheduleEmployee");
+    const scheduleTitle = document.getElementById("scheduleTitle");
+    const scheduleMemo = document.getElementById("scheduleMemo");
+    const scheduleNotice = document.getElementById("scheduleNotice");
+    const todaySchedules = document.getElementById("todaySchedules");
+    const punchScheduleMonth = document.getElementById("punchScheduleMonth");
+    const punchScheduleCalendar = document.getElementById("punchScheduleCalendar");
+    const calendarMonth = document.getElementById("calendarMonth");
+    const calendarEmployee = document.getElementById("calendarEmployee");
+    const calendarSummary = document.getElementById("calendarSummary");
+    const calendarGrid = document.getElementById("calendarGrid");
+    const employeeId = document.getElementById("employeeId");
+    const employeeName = document.getElementById("employeeName");
+    const furigana = document.getElementById("furigana");
+    const gender = document.getElementById("gender");
+    const employeePhoto = document.getElementById("employeePhoto");
+    const birthDate = document.getElementById("birthDate");
+    const domicile = document.getElementById("domicile");
+    const currentAddress = document.getElementById("currentAddress");
+    const phoneNumber = document.getElementById("phoneNumber");
+    const spouse = document.getElementById("spouse");
+    const dependents = document.getElementById("dependents");
+    const emergencyContactName = document.getElementById("emergencyContactName");
+    const emergencyContactPhone = document.getElementById("emergencyContactPhone");
+    const qualification = document.getElementById("qualification");
+    const hourlyWage = document.getElementById("hourlyWage");
+    const jobAllowance = document.getElementById("jobAllowance");
+    const hireDate = document.getElementById("hireDate");
+    const position = document.getElementById("position");
+    const terminationInfo = document.getElementById("terminationInfo");
+    const educationHistory = document.getElementById("educationHistory");
+    const careerHistory = document.getElementById("careerHistory");
+    const standardHours = document.getElementById("standardHours");
+    const paidLeaveTotal = document.getElementById("paidLeaveTotal");
+    const paidLeaveUsed = document.getElementById("paidLeaveUsed");
+    const transportAllowance = document.getElementById("transportAllowance");
+    const socialInsurance = document.getElementById("socialInsurance");
+    const pensionDeduction = document.getElementById("pensionDeduction");
+    const careInsuranceDeduction = document.getElementById("careInsuranceDeduction");
+    const employmentInsuranceDeduction = document.getElementById("employmentInsuranceDeduction");
+    const incomeTax = document.getElementById("incomeTax");
+    const residentTax = document.getElementById("residentTax");
+    const childCareSupport = document.getElementById("childCareSupport");
+    const employeeMemo = document.getElementById("employeeMemo");
+    const rosterRemarks = document.getElementById("rosterRemarks");
+    const employeeRoster = document.getElementById("employeeRoster");
+    const employeeNotice = document.getElementById("employeeNotice");
+    const rosterEmployee = document.getElementById("rosterEmployee");
+    const employeeCardDocument = document.getElementById("employeeCardDocument");
+    const contractEmployee = document.getElementById("contractEmployee");
+    const contractDocument = document.getElementById("contractDocument");
+    const contractPeriodType = document.getElementById("contractPeriodType");
+    const contractPeriodStart = document.getElementById("contractPeriodStart");
+    const contractPeriodEnd = document.getElementById("contractPeriodEnd");
+    const contractTimePreset = document.getElementById("contractTimePreset");
+    const contractStartTime = document.getElementById("contractStartTime");
+    const contractEndTime = document.getElementById("contractEndTime");
+    const contractBreakPreset = document.getElementById("contractBreakPreset");
+    const contractBreakCustom = document.getElementById("contractBreakCustom");
+    const contractPaymentMethod = document.getElementById("contractPaymentMethod");
+    const payslipMonth = document.getElementById("payslipMonth");
+    const payslipEmployee = document.getElementById("payslipEmployee");
+    const overtimeHours = document.getElementById("overtimeHours");
+    const holidayHours = document.getElementById("holidayHours");
+    const nightHours = document.getElementById("nightHours");
+    const monthlyPaidLeaveDays = document.getElementById("monthlyPaidLeaveDays");
+    const paidLeaveDates = document.getElementById("paidLeaveDates");
+    const payslipDetail = document.getElementById("payslipDetail");
+    const monthlyMonth = document.getElementById("monthlyMonth");
+    const monthlySummary = document.getElementById("monthlySummary");
+    const monthlyPayrollTable = document.getElementById("monthlyPayrollTable");
+    const monthlyReportTitle = document.getElementById("monthlyReportTitle");
+
+    document.querySelectorAll("[data-main-page]").forEach((button) => {
+      button.addEventListener("click", () => switchMainPage(button.dataset.mainPage));
+    });
+    document.querySelectorAll("[data-admin-page]").forEach((button) => {
+      button.addEventListener("click", () => switchAdminPage(button.dataset.adminPage));
+    });
+    document.getElementById("clockIn").addEventListener("click", () => punch("in"));
+    document.getElementById("clockOut").addEventListener("click", () => punch("out"));
+    document.getElementById("addSchedule").addEventListener("click", addSchedule);
+    document.getElementById("addManualShift").addEventListener("click", addManualShift);
+    document.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-shift]");
+      if (editButton) editShift(editButton.dataset.editShift);
+    });
+    document.getElementById("saveEmployee").addEventListener("click", saveEmployee);
+    document.getElementById("clearEmployee").addEventListener("click", clearEmployeeForm);
+    employeePhoto.addEventListener("change", handleEmployeePhoto);
+    hireDate.addEventListener("change", updatePaidLeaveAuto);
+    paidLeaveUsed.addEventListener("input", updatePaidLeaveAuto);
+    rosterEmployee.addEventListener("change", renderEmployeeCard);
+    document.getElementById("printRoster").addEventListener("click", () => printSection("employeeCardDocument"));
+    document.getElementById("printContractFromRoster").addEventListener("click", printContractForRosterEmployee);
+    document.getElementById("printContract").addEventListener("click", () => printSection("contractDocument"));
+    document.getElementById("printPayslip").addEventListener("click", () => printSection("payslipPrintArea"));
+    document.getElementById("printAllPayslips").addEventListener("click", printAllPayslips);
+    document.getElementById("printMonthly").addEventListener("click", printMonthlyReport);
+    document.getElementById("exportMonthlyCsv").addEventListener("click", exportMonthlyCsv);
+    document.getElementById("backupJson").addEventListener("click", backupJson);
+    document.getElementById("restoreJson").addEventListener("change", restoreJson);
+    if (loginForm) loginForm.addEventListener("submit", loginToCloud);
+    if (logoutButton) logoutButton.addEventListener("click", logoutFromCloud);
+    if (cloudSyncStatus) cloudSyncStatus.addEventListener("click", async () => {
+      await syncFromCloud();
+      render();
+      showPunchNotice(cloudMode ? "クラウドから最新データを読み込みました。" : "この端末に保存中です。");
+    });
+    calendarMonth.addEventListener("change", render);
+    calendarEmployee.addEventListener("change", renderCalendar);
+    punchScheduleMonth.addEventListener("change", renderPunchScheduleCalendar);
+    contractEmployee.addEventListener("change", renderContract);
+    document.querySelectorAll(".contract-setting").forEach((input) => {
+      input.addEventListener("change", updateContractSettingsFromForm);
+      input.addEventListener("input", updateContractSettingsFromForm);
+    });
+    contractBreakPreset.addEventListener("change", updateContractSettingsFromForm);
+    contractBreakCustom.addEventListener("input", updateContractSettingsFromForm);
+    payslipMonth.addEventListener("change", () => {
+      loadPayExtrasForm();
+      renderPayslip();
+    });
+    payslipEmployee.addEventListener("change", () => {
+      loadPayExtrasForm();
+      renderPayslip();
+    });
+    document.getElementById("savePayExtras").addEventListener("click", savePayExtras);
+    document.querySelectorAll(".pay-extra-input").forEach((input) => {
+      input.addEventListener("input", renderPayslip);
+    });
+    monthlyMonth.addEventListener("change", renderMonthly);
+
+    initDates();
+    initContractSettingsForm();
+    loadPayExtrasForm();
+    if (punchOnlyMode) document.body.classList.add("punch-only");
+    updateClock();
+    window.setInterval(updateClock, 1000);
+    render();
+    ensureCloudLogin().then(async (ready) => {
+      updateCloudStatus(ready && cloudMode ? "クラウド同期中" : "端末保存");
+      if (!ready) return;
+      await syncFromCloud();
+      render();
+    });
+
+    function loadState() {
+      const saved = localStorage.getItem(storageKey) || localStorage.getItem(oldStorageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return normalizeState(parsed);
+        } catch {}
+      }
+      return normalizeState({
+        employees: [
+          { id: crypto.randomUUID(), name: "職員A", wage: 1100 },
+          { id: crypto.randomUUID(), name: "職員B", wage: 1100 }
+        ],
+        shifts: [],
+        schedules: []
+      });
+    }
+
+    function normalizeState(raw) {
+      const employees = (raw.employees || []).map((employee) => ({
+        id: employee.id || crypto.randomUUID(),
+        name: employee.name || "未設定",
+        furigana: employee.furigana || "",
+        gender: employee.gender || "",
+        photo: employee.photo || "",
+        birthDate: employee.birthDate || "",
+        domicile: employee.domicile || "",
+        currentAddress: employee.currentAddress || "",
+        phoneNumber: employee.phoneNumber || "",
+        spouse: employee.spouse || "",
+        dependents: employee.dependents || "",
+        emergencyContactName: employee.emergencyContactName || employee.emergencyContact || "",
+        emergencyContactPhone: employee.emergencyContactPhone || "",
+        qualification: employee.qualification || "",
+        wage: Number(employee.wage || employee.hourlyWage || 0),
+        jobAllowance: Number(employee.jobAllowance || 0),
+        hireDate: employee.hireDate || todayText(),
+        position: employee.position || "",
+        terminationInfo: employee.terminationInfo || "",
+        educationHistory: employee.educationHistory || employee.resumeHistory || "",
+        careerHistory: employee.careerHistory || "",
+        standardHours: Number(employee.standardHours || 6),
+        paidLeaveTotal: Number(employee.paidLeaveTotal || 0),
+        paidLeaveUsed: Number(employee.paidLeaveUsed || 0),
+        transportAllowance: Number(employee.transportAllowance || 0),
+        socialInsurance: Number(employee.socialInsurance || 0),
+        pensionDeduction: Number(employee.pensionDeduction || 0),
+        careInsuranceDeduction: Number(employee.careInsuranceDeduction || 0),
+        employmentInsuranceDeduction: Number(employee.employmentInsuranceDeduction || 0),
+        incomeTax: Number(employee.incomeTax || 0),
+        residentTax: Number(employee.residentTax || 0),
+        childCareSupport: Number(employee.childCareSupport || 0),
+        memo: employee.memo || "",
+        rosterRemarks: employee.rosterRemarks || ""
+      }));
+      return {
+        employees,
+        shifts: (raw.shifts || []).map((shift) => ({
+          id: shift.id || crypto.randomUUID(),
+          employeeId: shift.employeeId,
+          date: shift.date,
+          start: shift.start,
+          end: shift.end || "",
+          memo: shift.memo || ""
+        })),
+        payrollExtras: raw.payrollExtras || {},
+        schedules: (raw.schedules || []).map((schedule) => ({
+          id: schedule.id || crypto.randomUUID(),
+          date: schedule.date || todayText(),
+          time: schedule.time || "",
+          employeeId: schedule.employeeId || "all",
+          title: schedule.title || "",
+          memo: schedule.memo || "",
+          done: Boolean(schedule.done)
+        }))
+      };
+    }
+
+    function loadContractSettings() {
+      const fallback = loadContractSettingsFallback();
+      const saved = localStorage.getItem(contractSettingsKey);
+      if (!saved) return fallback;
+      try {
+        return { ...fallback, ...JSON.parse(saved) };
+      } catch {
+        return fallback;
+      }
+    }
+
+    function loadContractSettingsFallback() {
+      return {
+        periodType: "none",
+        periodStart: "",
+        periodEnd: "",
+        timePreset: "default",
+        startTime: "08:00",
+        endTime: "16:00",
+        breakPreset: "60",
+        breakCustom: "",
+        paymentMethod: "口座振込",
+        overtime: "無",
+        holidayWork: "無",
+        deduction: "無",
+        raise: "有",
+        bonus: "無",
+        retirementPay: "無",
+        retirementAge: "無",
+        continuedEmployment: "無",
+        renewal: "有",
+        healthInsurance: "無",
+        pensionInsurance: "無",
+        careInsurance: "無",
+        employmentInsurance: "有"
+      };
+    }
+
+    function saveContractSettings() {
+      localStorage.setItem(contractSettingsKey, JSON.stringify(contractSettings));
+      scheduleCloudSave();
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      scheduleCloudSave();
+    }
+
+    function cloudConfigReady() {
+      return Boolean(
+        window.ROCO_CLOUD_CONFIG &&
+        window.ROCO_CLOUD_CONFIG.supabaseUrl &&
+        window.ROCO_CLOUD_CONFIG.supabaseAnonKey &&
+        window.supabase
+      );
+    }
+
+    function setupCloudClient() {
+      if (!cloudConfigReady()) {
+        cloudMode = false;
+        return false;
+      }
+      try {
+        cloudClient = window.supabase.createClient(
+          window.ROCO_CLOUD_CONFIG.supabaseUrl,
+          window.ROCO_CLOUD_CONFIG.supabaseAnonKey
+        );
+        cloudMode = true;
+        return true;
+      } catch {
+        cloudClient = null;
+        cloudMode = false;
+        return false;
+      }
+    }
+
+    async function ensureCloudLogin() {
+      if (!setupCloudClient()) return true;
+      try {
+        const { data } = await cloudClient.auth.getSession();
+        if (data.session) {
+          if (loginScreen) loginScreen.hidden = true;
+          if (logoutButton) logoutButton.hidden = false;
+          return true;
+        }
+        if (loginScreen) loginScreen.hidden = false;
+        updateCloudStatus("ログイン待ち");
+        return false;
+      } catch {
+        cloudMode = false;
+        updateCloudStatus("端末保存");
+        return true;
+      }
+    }
+
+    async function loginToCloud(event) {
+      event.preventDefault();
+      if (!cloudClient && !setupCloudClient()) return;
+      if (loginMessage) loginMessage.textContent = "ログイン中です";
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const { error } = await cloudClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (loginMessage) loginMessage.textContent = "ログインできませんでした";
+        return;
+      }
+      if (loginScreen) loginScreen.hidden = true;
+      if (logoutButton) logoutButton.hidden = false;
+      if (loginMessage) loginMessage.textContent = "";
+      updateCloudStatus("クラウド同期中");
+      await syncFromCloud();
+      render();
+    }
+
+    async function logoutFromCloud() {
+      if (cloudClient) await cloudClient.auth.signOut();
+      if (logoutButton) logoutButton.hidden = true;
+      if (loginScreen) loginScreen.hidden = false;
+      updateCloudStatus("ログイン待ち");
+    }
+
+    function sharedSnapshot() {
+      return {
+        state,
+        contractSettings,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    function applySharedData(data) {
+      if (!data || typeof data !== "object") return;
+      if (data.state) {
+        state = normalizeState(data.state);
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+      if (data.contractSettings) {
+        contractSettings = { ...loadContractSettingsFallback(), ...data.contractSettings };
+        localStorage.setItem(contractSettingsKey, JSON.stringify(contractSettings));
+        initContractSettingsForm();
+      }
+    }
+
+    async function syncFromCloud() {
+      if (!cloudMode || !cloudClient) return;
+      try {
+        const { data, error } = await cloudClient
+          .from("register_state")
+          .select("data")
+          .eq("id", cloudStateId)
+          .single();
+        if (error || !data || !data.data) {
+          await saveCloudNow();
+          return;
+        }
+        applySharedData(data.data);
+        updateCloudStatus("クラウド同期中");
+      } catch {
+        updateCloudStatus("通信待ち");
+      }
+    }
+
+    async function saveCloudNow() {
+      if (!cloudMode || !cloudClient) return true;
+      try {
+        const { error } = await cloudClient
+          .from("register_state")
+          .upsert({
+            id: cloudStateId,
+            data: sharedSnapshot(),
+            updated_at: new Date().toISOString()
+          });
+        updateCloudStatus(error ? "通信待ち" : "クラウド同期中");
+        return !error;
+      } catch {
+        updateCloudStatus("通信待ち");
+        return false;
+      }
+    }
+
+    function scheduleCloudSave() {
+      if (!cloudMode) return;
+      window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(saveCloudNow, 250);
+    }
+
+    function updateCloudStatus(text) {
+      if (cloudSyncStatus) cloudSyncStatus.textContent = text;
+    }
+
+    function initDates() {
+      const month = monthKey(new Date());
+      calendarMonth.value = month;
+      payslipMonth.value = month;
+      monthlyMonth.value = month;
+      scheduleDate.value = todayText();
+      punchScheduleMonth.value = month;
+    }
+
+    function initContractSettingsForm() {
+      contractPeriodType.value = contractSettings.periodType || "none";
+      contractPeriodStart.value = contractSettings.periodStart || "";
+      contractPeriodEnd.value = contractSettings.periodEnd || "";
+      contractTimePreset.value = contractSettings.timePreset || "default";
+      contractStartTime.value = contractSettings.startTime || "08:00";
+      contractEndTime.value = contractSettings.endTime || "16:00";
+      contractBreakPreset.value = contractSettings.breakPreset;
+      contractBreakCustom.value = contractSettings.breakCustom;
+      contractPaymentMethod.value = contractSettings.paymentMethod || "口座振込";
+      toggleContractConditionalFields();
+      document.querySelectorAll("[data-contract-option]").forEach((group) => {
+        const key = group.dataset.contractOption;
+        group.innerHTML = ["有", "無"].map((value) => `<button class="yn-btn ${contractSettings[key] === value ? "active" : ""}" type="button" data-contract-key="${key}" data-contract-value="${value}">${value}</button>`).join("");
+      });
+      document.querySelectorAll("[data-contract-key]").forEach((button) => {
+        button.addEventListener("click", () => {
+          contractSettings[button.dataset.contractKey] = button.dataset.contractValue;
+          saveContractSettings();
+          initContractSettingsForm();
+          renderContract();
+        });
+      });
+    }
+
+    function updateContractSettingsFromForm() {
+      contractSettings.periodType = contractPeriodType.value;
+      contractSettings.periodStart = contractPeriodStart.value;
+      contractSettings.periodEnd = contractPeriodEnd.value;
+      contractSettings.timePreset = contractTimePreset.value;
+      contractSettings.startTime = contractStartTime.value || "08:00";
+      contractSettings.endTime = contractEndTime.value || "16:00";
+      contractSettings.breakPreset = contractBreakPreset.value;
+      contractSettings.breakCustom = contractBreakCustom.value;
+      contractSettings.paymentMethod = contractPaymentMethod.value;
+      toggleContractConditionalFields();
+      saveContractSettings();
+      renderContract();
+    }
+
+    function toggleContractConditionalFields() {
+      const hasFixedPeriod = contractPeriodType.value === "fixed";
+      document.querySelectorAll(".contract-period-field").forEach((input) => {
+        input.disabled = !hasFixedPeriod;
+      });
+      const customTime = contractTimePreset.value === "custom";
+      document.querySelectorAll(".contract-time-field").forEach((input) => {
+        input.disabled = !customTime;
+      });
+    }
+
+    function switchMainPage(page) {
+      if (punchOnlyMode && page === "admin") {
+        activeMainPage = "punch";
+        return render();
+      }
+      activeMainPage = page === "admin" ? "admin" : "punch";
+      document.getElementById("punchPage").classList.toggle("hidden", activeMainPage !== "punch");
+      document.getElementById("adminPage").classList.toggle("hidden", activeMainPage !== "admin");
+      document.querySelectorAll("[data-main-page]").forEach((button) => {
+        if (punchOnlyMode && button.dataset.mainPage === "admin") button.hidden = true;
+        button.classList.toggle("active", button.dataset.mainPage === activeMainPage);
+      });
+      render();
+    }
+
+    function switchAdminPage(page) {
+      activeAdminPage = page;
+      ["calendar", "employees", "payslip", "monthly"].forEach((name) => {
+        document.getElementById(`${name}Page`).classList.toggle("hidden", name !== activeAdminPage);
+      });
+      document.querySelectorAll("[data-admin-page]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.adminPage === activeAdminPage);
+      });
+      render();
+    }
+
+    function updateClock() {
+      const now = new Date();
+      clockDate.textContent = dateFormat.format(now);
+      clockTime.textContent = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    function punch(type) {
+      const employee = findEmployee(punchEmployee.value);
+      if (!employee) return showPunchNotice("従業員を選んでください。");
+      const now = new Date();
+      const today = dateKey(now);
+      const todayShifts = shiftsForEmployeeDate(employee.id, today);
+      const openShift = todayShifts.find((shift) => !shift.end);
+      const existingShift = todayShifts[0];
+      if (type === "in") {
+        if (openShift) return showPunchNotice(`${employee.name} はすでに出勤中です。`);
+        if (existingShift) {
+          showPunchNotice(`${employee.name} は今日は退勤済みです。訂正ボタンから時間を直してください。`);
+          return;
+        } else {
+          state.shifts.push({ id: crypto.randomUUID(), employeeId: employee.id, date: today, start: now.toISOString(), end: "", memo: "" });
+          showPunchNotice(`${employee.name} の出勤を記録しました。`);
+        }
+      } else {
+        const targetShift = openShift || existingShift;
+        if (!targetShift) return showPunchNotice(`${employee.name} の出勤記録が見つかりません。`);
+        targetShift.end = now.toISOString();
+        targetShift.memo = targetShift.memo || (openShift ? "" : "打刻訂正");
+        showPunchNotice(openShift ? `${employee.name} の退勤を記録しました。` : `${employee.name} の退勤時刻を訂正しました。`);
+      }
+      mergeDuplicateShifts(employee.id, today);
+      save();
+      render();
+    }
+
+    function addManualShift() {
+      const employee = findEmployee(calendarEmployee.value) || state.employees[0];
+      if (!employee) return alert("先に従業員を登録してください。");
+      const date = prompt("勤務日を入力してください（例: 2026-05-27）", `${calendarMonth.value || monthKey(new Date())}-01`);
+      if (!date) return;
+      const start = prompt("出勤時刻を入力してください（例: 09:00）", "09:00");
+      if (!start) return;
+      const end = prompt("退勤時刻を入力してください（例: 16:00）", "16:00");
+      if (!end) return;
+      upsertShift(employee.id, date, start, end, "手入力");
+      save();
+      render();
+    }
+
+    function shiftsForEmployeeDate(employeeIdValue, date) {
+      return state.shifts
+        .filter((shift) => shift.employeeId === employeeIdValue && shift.date === date)
+        .sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    }
+
+    function mergeDuplicateShifts(employeeIdValue, date) {
+      const sameDay = shiftsForEmployeeDate(employeeIdValue, date);
+      if (sameDay.length <= 1) return sameDay[0] || null;
+      const keep = sameDay[0];
+      sameDay.slice(1).forEach((shift) => {
+        if (!keep.end && shift.end) keep.end = shift.end;
+        if (shift.start && new Date(shift.start) < new Date(keep.start)) keep.start = shift.start;
+        if (shift.end && keep.end && new Date(shift.end) > new Date(keep.end)) keep.end = shift.end;
+        if (shift.memo && !String(keep.memo || "").includes(shift.memo)) {
+          keep.memo = [keep.memo, shift.memo].filter(Boolean).join(" / ");
+        }
+      });
+      state.shifts = state.shifts.filter((shift) => shift === keep || shift.employeeId !== employeeIdValue || shift.date !== date);
+      keep.memo = keep.memo || "重複整理";
+      return keep;
+    }
+
+    function upsertShift(employeeIdValue, date, start, end, memo = "手入力") {
+      const existing = mergeDuplicateShifts(employeeIdValue, date);
+      const next = existing || {
+        id: crypto.randomUUID(),
+        employeeId: employeeIdValue,
+        date,
+        start: "",
+        end: "",
+        memo
+      };
+      next.start = localDateTime(date, start).toISOString();
+      next.end = end ? localDateTime(date, end).toISOString() : "";
+      next.memo = existing ? "勤務時間訂正" : memo;
+      if (!existing) state.shifts.push(next);
+      return next;
+    }
+
+    function editShift(shiftId) {
+      const shift = state.shifts.find((item) => item.id === shiftId);
+      if (!shift) return alert("勤務記録が見つかりません。");
+      const employee = findEmployee(shift.employeeId);
+      const date = prompt("勤務日を訂正してください（例: 2026-05-27）", shift.date);
+      if (!date) return;
+      const start = prompt("出勤時刻を訂正してください（例: 09:00）", formatTime(shift.start));
+      if (!start) return;
+      const end = prompt("退勤時刻を訂正してください（例: 16:00）", shift.end ? formatTime(shift.end) : "");
+      const deleteOld = date !== shift.date || shift.employeeId !== employee?.id;
+      if (deleteOld) state.shifts = state.shifts.filter((item) => item.id !== shift.id);
+      upsertShift(shift.employeeId, date, start, end, "勤務時間訂正");
+      save();
+      render();
+      showPunchNotice(`${employee?.name || "従業員"} の勤務時間を訂正しました。`);
+    }
+
+    function addSchedule() {
+      const title = scheduleTitle.value.trim();
+      if (!scheduleDate.value || !title) {
+        showScheduleNotice("日付と予定を入力してください。");
+        return;
+      }
+      state.schedules.push({
+        id: crypto.randomUUID(),
+        date: scheduleDate.value,
+        time: scheduleTime.value,
+        employeeId: scheduleEmployee.value || "all",
+        title,
+        memo: scheduleMemo.value.trim(),
+        done: false
+      });
+      scheduleTitle.value = "";
+      scheduleMemo.value = "";
+      save();
+      render();
+      showScheduleNotice("予定を追加しました。");
+    }
+
+    function toggleSchedule(id) {
+      state.schedules = state.schedules.map((schedule) => schedule.id === id ? { ...schedule, done: !schedule.done } : schedule);
+      save();
+      render();
+    }
+
+    function deleteSchedule(id) {
+      if (!confirm("この予定を削除しますか？")) return;
+      state.schedules = state.schedules.filter((schedule) => schedule.id !== id);
+      save();
+      render();
+      showScheduleNotice("予定を削除しました。");
+    }
+
+    function saveEmployee() {
+      const name = employeeName.value.trim();
+      const wage = Number(hourlyWage.value);
+      if (!name || !Number.isFinite(wage)) return showEmployeeNotice("氏名と時給を確認してください。");
+      updatePaidLeaveAuto();
+      const next = {
+        id: employeeId.value || crypto.randomUUID(),
+        name,
+        furigana: furigana.value.trim(),
+        gender: gender.value,
+        photo: pendingPhoto || findEmployee(employeeId.value)?.photo || "",
+        birthDate: birthDate.value,
+        domicile: domicile.value.trim(),
+        currentAddress: currentAddress.value.trim(),
+        phoneNumber: phoneNumber.value.trim(),
+        spouse: spouse.value,
+        dependents: dependents.value.trim(),
+        emergencyContactName: emergencyContactName.value.trim(),
+        emergencyContactPhone: emergencyContactPhone.value.trim(),
+        qualification: qualification.value.trim(),
+        wage: Math.round(wage),
+        jobAllowance: Number(jobAllowance.value || 0),
+        hireDate: hireDate.value || todayText(),
+        position: position.value.trim(),
+        terminationInfo: terminationInfo.value.trim(),
+        educationHistory: educationHistory.value.trim(),
+        careerHistory: careerHistory.value.trim(),
+        standardHours: Number(standardHours.value || 6),
+        paidLeaveTotal: legalPaidLeaveDays(hireDate.value || todayText()),
+        paidLeaveUsed: Number(paidLeaveUsed.value || 0),
+        transportAllowance: Number(transportAllowance.value || 0),
+        socialInsurance: Number(socialInsurance.value || 0),
+        pensionDeduction: Number(pensionDeduction.value || 0),
+        careInsuranceDeduction: Number(careInsuranceDeduction.value || 0),
+        employmentInsuranceDeduction: Number(employmentInsuranceDeduction.value || 0),
+        incomeTax: Number(incomeTax.value || 0),
+        residentTax: Number(residentTax.value || 0),
+        childCareSupport: Number(childCareSupport.value || 0),
+        memo: employeeMemo.value.trim(),
+        rosterRemarks: rosterRemarks.value.trim()
+      };
+      const exists = state.employees.some((employee) => employee.id === next.id);
+      state.employees = exists ? state.employees.map((employee) => employee.id === next.id ? next : employee) : [...state.employees, next];
+      pendingPhoto = "";
+      save();
+      clearEmployeeForm();
+      render();
+      showEmployeeNotice(exists ? "従業員情報を更新しました。" : "従業員を追加しました。");
+    }
+
+    function editEmployee(id) {
+      const employee = findEmployee(id);
+      if (!employee) return;
+      employeeId.value = employee.id;
+      employeeName.value = employee.name;
+      furigana.value = employee.furigana || "";
+      gender.value = employee.gender || "";
+      pendingPhoto = employee.photo || "";
+      birthDate.value = employee.birthDate || "";
+      domicile.value = employee.domicile || "";
+      currentAddress.value = employee.currentAddress || "";
+      phoneNumber.value = employee.phoneNumber || "";
+      spouse.value = employee.spouse || "";
+      dependents.value = employee.dependents || "";
+      emergencyContactName.value = employee.emergencyContactName || "";
+      emergencyContactPhone.value = employee.emergencyContactPhone || "";
+      qualification.value = employee.qualification || "";
+      hourlyWage.value = employee.wage;
+      jobAllowance.value = employee.jobAllowance || "";
+      hireDate.value = employee.hireDate;
+      position.value = employee.position;
+      terminationInfo.value = employee.terminationInfo || "";
+      educationHistory.value = employee.educationHistory || "";
+      careerHistory.value = employee.careerHistory || "";
+      standardHours.value = employee.standardHours;
+      paidLeaveTotal.value = employee.paidLeaveTotal;
+      paidLeaveUsed.value = employee.paidLeaveUsed;
+      transportAllowance.value = employee.transportAllowance;
+      socialInsurance.value = employee.socialInsurance || "";
+      pensionDeduction.value = employee.pensionDeduction || "";
+      careInsuranceDeduction.value = employee.careInsuranceDeduction || "";
+      employmentInsuranceDeduction.value = employee.employmentInsuranceDeduction || "";
+      incomeTax.value = employee.incomeTax || "";
+      residentTax.value = employee.residentTax || "";
+      childCareSupport.value = employee.childCareSupport || "";
+      employeeMemo.value = employee.memo;
+      rosterRemarks.value = employee.rosterRemarks || "";
+      updatePaidLeaveAuto();
+    }
+
+    function deleteEmployee(id) {
+      const employee = findEmployee(id);
+      if (!employee || !confirm(`${employee.name} を削除しますか？勤務記録は残ります。`)) return;
+      state.employees = state.employees.filter((row) => row.id !== id);
+      save();
+      render();
+      showEmployeeNotice("従業員を削除しました。");
+    }
+
+    function clearEmployeeForm() {
+      employeeId.value = "";
+      employeeName.value = "";
+      furigana.value = "";
+      gender.value = "";
+      employeePhoto.value = "";
+      pendingPhoto = "";
+      birthDate.value = "";
+      domicile.value = "";
+      currentAddress.value = "";
+      phoneNumber.value = "";
+      spouse.value = "";
+      dependents.value = "";
+      emergencyContactName.value = "";
+      emergencyContactPhone.value = "";
+      qualification.value = "";
+      hourlyWage.value = "";
+      jobAllowance.value = "";
+      hireDate.value = todayText();
+      position.value = "";
+      terminationInfo.value = "";
+      educationHistory.value = "";
+      careerHistory.value = "";
+      standardHours.value = "6";
+      paidLeaveTotal.value = "";
+      paidLeaveUsed.value = "";
+      transportAllowance.value = "";
+      socialInsurance.value = "";
+      pensionDeduction.value = "";
+      careInsuranceDeduction.value = "";
+      employmentInsuranceDeduction.value = "";
+      incomeTax.value = "";
+      residentTax.value = "";
+      childCareSupport.value = "";
+      employeeMemo.value = "";
+      rosterRemarks.value = "";
+      updatePaidLeaveAuto();
+    }
+
+    function handleEmployeePhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingPhoto = String(reader.result || "");
+        showEmployeeNotice("写真を読み込みました。保存すると反映されます。");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updatePaidLeaveAuto() {
+      paidLeaveTotal.value = legalPaidLeaveDays(hireDate.value || todayText());
+    }
+
+    function payExtraKey(employeeId, month) {
+      return `${employeeId}_${month}`;
+    }
+
+    function currentPayExtras(employee, month) {
+      const saved = state.payrollExtras?.[payExtraKey(employee.id, month)] || {};
+      return {
+        overtimeHours: Number(overtimeHours.value || saved.overtimeHours || 0),
+        holidayHours: Number(holidayHours.value || saved.holidayHours || 0),
+        nightHours: Number(nightHours.value || saved.nightHours || 0),
+        monthlyPaidLeaveDays: Number(monthlyPaidLeaveDays.value || saved.monthlyPaidLeaveDays || 0),
+        paidLeaveDates: paidLeaveDates.value.trim() || saved.paidLeaveDates || ""
+      };
+    }
+
+    function loadPayExtrasForm() {
+      const employee = findEmployee(payslipEmployee.value) || state.employees[0];
+      if (!employee) {
+        overtimeHours.value = "";
+        holidayHours.value = "";
+        nightHours.value = "";
+        return;
+      }
+      const month = payslipMonth.value || monthKey(new Date());
+      const saved = state.payrollExtras?.[payExtraKey(employee.id, month)] || {};
+      overtimeHours.value = saved.overtimeHours || "";
+      holidayHours.value = saved.holidayHours || "";
+      nightHours.value = saved.nightHours || "";
+      monthlyPaidLeaveDays.value = saved.monthlyPaidLeaveDays || "";
+      paidLeaveDates.value = saved.paidLeaveDates || "";
+    }
+
+    function savePayExtras() {
+      const employee = findEmployee(payslipEmployee.value) || state.employees[0];
+      if (!employee) return;
+      const month = payslipMonth.value || monthKey(new Date());
+      state.payrollExtras = state.payrollExtras || {};
+      state.payrollExtras[payExtraKey(employee.id, month)] = {
+        overtimeHours: Number(overtimeHours.value || 0),
+        holidayHours: Number(holidayHours.value || 0),
+        nightHours: Number(nightHours.value || 0),
+        monthlyPaidLeaveDays: Number(monthlyPaidLeaveDays.value || 0),
+        paidLeaveDates: paidLeaveDates.value.trim()
+      };
+      save();
+      renderPayslip();
+      renderMonthly();
+    }
+
+    function render() {
+      renderEmployeeOptions();
+      renderTodayPunches();
+      renderTodaySchedules();
+      renderPunchScheduleCalendar();
+      renderCalendar();
+      renderRoster();
+      renderEmployeeCard();
+      renderContract();
+      renderPayslip();
+      renderMonthly();
+    }
+
+    function renderEmployeeOptions() {
+      const options = state.employees.map((employee) => `<option value="${employee.id}">${escapeHtml(employee.name)}</option>`).join("");
+      syncSelect(punchEmployee, options);
+      syncSelect(scheduleEmployee, `<option value="all">全員</option>${options}`);
+      syncSelect(calendarEmployee, `<option value="all">すべて</option>${options}`);
+      syncSelect(rosterEmployee, options);
+      syncSelect(contractEmployee, options);
+      syncSelect(payslipEmployee, options);
+    }
+
+    function syncSelect(select, html) {
+      const current = select.value;
+      select.innerHTML = html;
+      if ([...select.options].some((option) => option.value === current)) select.value = current;
+    }
+
+    function renderTodayPunches() {
+      const today = todayText();
+      const rows = state.shifts.filter((shift) => shift.date === today).sort((a, b) => a.start.localeCompare(b.start));
+      if (!rows.length) {
+        todayPunches.innerHTML = `<div class="empty">今日の打刻はまだありません。</div>`;
+        return;
+      }
+      todayPunches.innerHTML = rows.map((shift) => {
+        const employee = findEmployee(shift.employeeId);
+        return `
+          <div class="employee-item">
+            <strong>${escapeHtml(employee?.name || "削除済み")}</strong>
+            <span>${formatTime(shift.start)} - ${shift.end ? formatTime(shift.end) : "出勤中"}</span>
+            <span class="num">${formatHours(workHours(shift))}</span>
+            <button class="icon-btn" type="button" title="勤務時間を訂正" data-edit-shift="${shift.id}">訂正</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTodaySchedules() {
+      const today = todayText();
+      const rows = state.schedules
+        .filter((schedule) => schedule.date === today)
+        .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+      if (!rows.length) {
+        todaySchedules.innerHTML = `<div class="empty">今日の予定はまだありません。</div>`;
+        return;
+      }
+      todaySchedules.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 86px;">時間</th>
+                <th>予定</th>
+                <th style="width: 130px;">担当</th>
+                <th>メモ</th>
+                <th style="width: 110px;" class="num">確認</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((schedule) => {
+                const employee = findEmployee(schedule.employeeId);
+                return `
+                  <tr>
+                    <td>${escapeHtml(schedule.time || "")}</td>
+                    <td>${schedule.done ? "済 " : ""}${escapeHtml(schedule.title)}</td>
+                    <td>${schedule.employeeId === "all" ? "全員" : escapeHtml(employee?.name || "削除済み")}</td>
+                    <td>${escapeHtml(schedule.memo || "")}</td>
+                    <td>
+                      <div class="small-actions">
+                        <button class="icon-btn" type="button" title="確認" onclick="toggleSchedule('${schedule.id}')">${schedule.done ? "戻" : "済"}</button>
+                        <button class="icon-btn" type="button" title="削除" onclick="deleteSchedule('${schedule.id}')">×</button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderPunchScheduleCalendar() {
+      const month = punchScheduleMonth.value || monthKey(new Date());
+      const [year, monthNumber] = month.split("-").map(Number);
+      const first = new Date(year, monthNumber - 1, 1);
+      const start = new Date(first);
+      start.setDate(first.getDate() - first.getDay());
+      const names = ["日", "月", "火", "水", "木", "金", "土"];
+      const cells = names.map((name) => `<div class="day-name">${name}</div>`);
+      for (let i = 0; i < 42; i++) {
+        const day = new Date(start);
+        day.setDate(start.getDate() + i);
+        const key = dateKeyLocal(day);
+        const dayRows = state.schedules
+          .filter((schedule) => schedule.date === key)
+          .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+        cells.push(`
+          <div class="day-card ${day.getMonth() + 1 === monthNumber ? "" : "muted"}">
+            <div class="day-number">${day.getDate()}</div>
+            ${dayRows.length ? dayRows.map((schedule) => {
+              const employee = findEmployee(schedule.employeeId);
+              const assignee = schedule.employeeId === "all" ? "全員" : (employee?.name || "削除済み");
+              return `<div class="shift-chip ${schedule.done ? "" : "open"}">${escapeHtml(schedule.time || "")} ${escapeHtml(schedule.title)}<br>${escapeHtml(assignee)}</div>`;
+            }).join("") : `<span style="color:var(--muted);font-size:12px;">予定なし</span>`}
+          </div>
+        `);
+      }
+      punchScheduleCalendar.innerHTML = cells.join("");
+    }
+
+    function renderCalendar() {
+      const month = calendarMonth.value || monthKey(new Date());
+      const rows = state.shifts
+        .filter((shift) => shift.date.slice(0, 7) === month)
+        .filter((shift) => calendarEmployee.value === "all" || shift.employeeId === calendarEmployee.value);
+      const totalHours = rows.reduce((sum, shift) => sum + workHours(shift), 0);
+      const openCount = rows.filter((shift) => !shift.end).length;
+      calendarSummary.innerHTML = [
+        metric("勤務件数", `${rows.length}件`, "green"),
+        metric("合計時間", formatHours(totalHours), "blue"),
+        metric("出勤中/退勤未入力", `${openCount}件`, openCount ? "red" : "green"),
+        metric("出勤者数", `${new Set(rows.map((shift) => shift.employeeId)).size}人`, "amber")
+      ].join("");
+
+      const [year, monthNumber] = month.split("-").map(Number);
+      const first = new Date(year, monthNumber - 1, 1);
+      const start = new Date(first);
+      start.setDate(first.getDate() - first.getDay());
+      const names = ["日", "月", "火", "水", "木", "金", "土"];
+      const cells = names.map((name) => `<div class="day-name">${name}</div>`);
+      for (let i = 0; i < 42; i++) {
+        const day = new Date(start);
+        day.setDate(start.getDate() + i);
+        const key = dateKeyLocal(day);
+        const dayRows = rows.filter((shift) => shift.date === key);
+        cells.push(`
+          <div class="day-card ${day.getMonth() + 1 === monthNumber ? "" : "muted"}">
+            <div class="day-number">${day.getDate()}</div>
+            ${dayRows.length ? dayRows.map((shift) => {
+              const employee = findEmployee(shift.employeeId);
+              return `<button class="shift-chip ${shift.end ? "" : "open"}" type="button" data-edit-shift="${shift.id}" title="勤務時間を訂正">${escapeHtml(employee?.name || "削除済み")}<br>${formatTime(shift.start)}-${shift.end ? formatTime(shift.end) : "未退勤"}</button>`;
+            }).join("") : `<span style="color:var(--muted);font-size:12px;">勤務なし</span>`}
+          </div>
+        `);
+      }
+      calendarGrid.innerHTML = cells.join("");
+    }
+
+    function renderRoster() {
+      if (!state.employees.length) {
+        employeeRoster.innerHTML = `<div class="empty">従業員が登録されていません。</div>`;
+        return;
+      }
+      employeeRoster.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>氏名</th><th>フリガナ</th><th>性別</th><th>業務の種類</th><th>雇用年月日</th><th class="num">時給</th><th class="num">有給残</th><th class="no-print">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.employees.map((employee) => `
+                <tr>
+                  <td>${escapeHtml(employee.name)}</td>
+                  <td>${escapeHtml(employee.furigana || "")}</td>
+                  <td>${escapeHtml(employee.gender || "")}</td>
+                  <td>${escapeHtml(employee.position || "")}</td>
+                  <td>${escapeHtml(employee.hireDate || "")}</td>
+                  <td class="num">${yen.format(employee.wage)}</td>
+                  <td class="num">${paidLeaveRemaining(employee)}日</td>
+                  <td class="no-print">
+                    <div class="small-actions">
+                      <button class="icon-btn" type="button" title="編集" onclick="editEmployee('${employee.id}')">✎</button>
+                      <button class="icon-btn" type="button" title="削除" onclick="deleteEmployee('${employee.id}')">×</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderEmployeeCard() {
+      const employee = findEmployee(rosterEmployee.value) || state.employees[0];
+      if (!employee) {
+        employeeCardDocument.innerHTML = `<div class="empty">従業員を登録すると個人台帳を作れます。</div>`;
+        return;
+      }
+      const photoHtml = employee.photo
+        ? `<img class="profile-photo" src="${employee.photo}" alt="${escapeHtml(employee.name)}の写真">`
+        : `<div class="profile-photo empty-photo">写真</div>`;
+      employeeCardDocument.innerHTML = `
+        <h2>従業員個人台帳</h2>
+        <div class="profile-head">
+          ${photoHtml}
+          <div>
+            <p class="profile-name"><strong>氏名:</strong> ${escapeHtml(employee.name)}</p>
+            <p><strong>フリガナ:</strong> ${escapeHtml(employee.furigana || "")}</p>
+            <p><strong>性別:</strong> ${escapeHtml(employee.gender || "")}</p>
+            <p><strong>生年月日:</strong> ${escapeHtml(employee.birthDate || "")}</p>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <p><strong>本籍:</strong> ${escapeHtml(employee.domicile || "")}</p>
+          <p class="wide-print"><strong>現住所:</strong> ${escapeHtml(employee.currentAddress || "")}</p>
+          <p><strong>電話番号:</strong> ${escapeHtml(employee.phoneNumber || "")}</p>
+          <p><strong>配偶者:</strong> ${escapeHtml(employee.spouse || "")}</p>
+          <p><strong>扶養:</strong> ${escapeHtml(employee.dependents || "0")}人</p>
+          <p><strong>緊急連絡先:</strong> ${escapeHtml(employee.emergencyContactName || "")} ${escapeHtml(employee.emergencyContactPhone || "")}</p>
+          <p><strong>資格・免許:</strong> ${escapeHtml(employee.qualification || "")}</p>
+          <p><strong>雇用年月日:</strong> ${escapeHtml(employee.hireDate || "")}</p>
+          <p><strong>業務の種類:</strong> ${escapeHtml(employee.position || "")}</p>
+          <p><strong>解雇・退職など:</strong> ${escapeHtml(employee.terminationInfo || "")}</p>
+        </div>
+        <h3 style="margin-top:18px;">学歴</h3>
+        <p style="white-space:pre-wrap;">${escapeHtml(employee.educationHistory || "")}</p>
+        <h3 style="margin-top:18px;">職歴</h3>
+        <p style="white-space:pre-wrap;">${escapeHtml(employee.careerHistory || "")}</p>
+        <h3 style="margin-top:18px;">備考</h3>
+        <p style="white-space:pre-wrap; min-height:52px; border:1px solid var(--line); border-radius:8px; padding:8px;">${escapeHtml(employee.rosterRemarks || employee.memo || "")}</p>
+      `;
+    }
+
+    function renderContract() {
+      const employee = findEmployee(contractEmployee.value) || state.employees[0];
+      if (!employee) {
+        contractDocument.innerHTML = `<div class="empty">従業員を登録すると雇用契約書を作れます。</div>`;
+        return;
+      }
+      const breakMinutes = contractSettings.breakPreset === "custom" ? (contractSettings.breakCustom || "____") : "60";
+      const contractDate = formatDateJa(employee.hireDate);
+      const employmentPeriod = contractSettings.periodType === "fixed"
+        ? `定め有り（${formatDateJa(contractSettings.periodStart) || "____年____月____日"}から${formatDateJa(contractSettings.periodEnd) || "____年____月____日"}まで）`
+        : "定め無し";
+      const workStart = contractSettings.timePreset === "custom" ? (contractSettings.startTime || "____:____") : "08:00";
+      const workEnd = contractSettings.timePreset === "custom" ? (contractSettings.endTime || "____:____") : "16:00";
+      const weeklyHours = Number(employee.standardHours || 0) * 5;
+      const weeklyHoursText = weeklyHours ? `${weeklyHours.toFixed(2).replace(/\.00$/, "")}時間` : "____時間";
+      contractDocument.innerHTML = `
+        <h2>雇用契約書</h2>
+        <p>合同会社give comfort（以下「甲」という）と ${escapeHtml(employee.name)}（以下「乙」という）は、次のとおり雇用契約を締結する。</p>
+        <div class="contract-grid">
+          <p><strong>氏名:</strong> ${escapeHtml(employee.name)}</p>
+          <p><strong>契約日:</strong> ${escapeHtml(contractDate || "____年____月____日")}</p>
+          <p><strong>雇用期間:</strong> ${escapeHtml(employmentPeriod)}</p>
+          <p><strong>就業の場所:</strong> 兵庫県加古川市野口町長砂95-36 ほか会社が指定する場所</p>
+          <p><strong>従事すべき業務の内容:</strong> ${escapeHtml(employee.position || "会社が指定する業務")}</p>
+          <p><strong>始業・終業の時刻:</strong> 始業 ${escapeHtml(workStart)} / 終業 ${escapeHtml(workEnd)}</p>
+          <p><strong>休憩時間:</strong> ${escapeHtml(breakMinutes)}分</p>
+          <p><strong>週所定労働時間:</strong> ${escapeHtml(weeklyHoursText)}（1日の労働時間×5日）</p>
+          <p><strong>所定以外の労働:</strong> ${markYesNo(contractSettings.overtime)}</p>
+          <p><strong>休日労働:</strong> ${markYesNo(contractSettings.holidayWork)}</p>
+          <p><strong>休日:</strong> 土曜日、日曜日、国民の祝日</p>
+          <p><strong>休暇:</strong> 夏季休暇、年末年始休暇、年次有給休暇（法定付与）</p>
+          <p><strong>基本給:</strong> 時間制 ${yen.format(employee.wage)} / 時</p>
+          <p><strong>割増賃金率:</strong> 法定時間外、休日または深夜労働については法定の割増率による</p>
+          <p><strong>賃金締切日:</strong> 毎月末日</p>
+          <p><strong>賃金支払日:</strong> 翌月20日</p>
+          <p><strong>賃金の支払方法:</strong> ${escapeHtml(contractSettings.paymentMethod || "口座振込")}</p>
+          <p><strong>労使協定による賃金支払時の控除:</strong> ${markYesNo(contractSettings.deduction)}</p>
+          <p><strong>昇給:</strong> ${markYesNo(contractSettings.raise)}</p>
+          <p><strong>賞与:</strong> ${markYesNo(contractSettings.bonus)}</p>
+          <p><strong>退職金:</strong> ${markYesNo(contractSettings.retirementPay)}</p>
+          <p><strong>定年制:</strong> ${markYesNo(contractSettings.retirementAge)}</p>
+          <p><strong>継続雇用制度:</strong> ${markYesNo(contractSettings.continuedEmployment)}</p>
+          <p><strong>自己都合退職の手続:</strong> 1ヶ月以上前に届け出ること</p>
+          <p><strong>解雇の事由及び手続:</strong> 詳細は就業規則に準ずる</p>
+          <p><strong>契約更新の有無:</strong> 期間の定め有りの場合のみ記入 ${markYesNo(contractSettings.renewal)}</p>
+          <p><strong>契約更新の判断:</strong> <span class="small-note">服務規律を遵守できているか、勤務態度、能力、会社の経営状況、従事している業務の進捗状況、その他により判断する</span></p>
+        </div>
+        <div class="insurance-row">
+          <p><strong>健康保険:</strong> ${markYesNo(contractSettings.healthInsurance)}</p>
+          <p><strong>厚生年金保険:</strong> ${markYesNo(contractSettings.pensionInsurance)}</p>
+          <p><strong>介護保険:</strong> ${markYesNo(contractSettings.careInsurance)}</p>
+          <p><strong>雇用保険:</strong> ${markYesNo(contractSettings.employmentInsurance)}</p>
+        </div>
+        <p>本契約の成立を証するため、本契約書2通を作成し、甲乙の両当事者署名捺印の上、各1通を保持する。</p>
+        <div class="signature-grid">
+          <div class="signature-box">
+            <h3>甲</h3>
+            <p>所在地 兵庫県加古川市野口町長砂95-36</p>
+            <p>会社名 合同会社give comfort</p>
+            <p>代表社員 勝山　紘子　　印 __________</p>
+          </div>
+          <div class="signature-box">
+            <h3>乙</h3>
+            <p>住所 ${escapeHtml(employee.currentAddress || "________________________________")}</p>
+            <p>氏名 ${escapeHtml(employee.name)}　　印 __________</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPayslip() {
+      const employee = findEmployee(payslipEmployee.value) || state.employees[0];
+      if (!employee) {
+        payslipDetail.innerHTML = `<div class="empty">従業員を登録してください。</div>`;
+        return;
+      }
+      const month = payslipMonth.value || monthKey(new Date());
+      const calc = payrollForEmployee(employee, month, currentPayExtras(employee, month));
+      payslipDetail.innerHTML = payslipCardHtml(employee, month, calc);
+    }
+
+    function payslipCardHtml(employee, month, calc) {
+      return `
+        <div class="payslip-card">
+          <div class="payslip-top">
+            <div class="payslip-person">
+              <h2>${formatMonth(month)} 給料明細</h2>
+              <strong>${escapeHtml(employee.name)}</strong>
+              <p>${escapeHtml(employee.position || "")}</p>
+            </div>
+            <div class="pay-hero payslip-net">
+              <span>差引支給額</span>
+              <strong>${yen.format(calc.netPay)}</strong>
+            </div>
+          </div>
+          <div class="summary-grid">
+            ${metric("課税対象額", yen.format(calc.taxablePay), "green")}
+            ${metric("非課税交通費", yen.format(calc.transportAllowance), "blue")}
+            ${metric("控除額合計", yen.format(calc.totalDeductions), "red")}
+            ${metric("有給残数", `${paidLeaveRemaining(employee)}日`, "green")}
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr class="payslip-section-row"><th colspan="2">支給</th></tr>
+                <tr><th>基本給</th><td class="num">${yen.format(calc.basePay)}</td></tr>
+                <tr><th>職務手当</th><td class="num">${yen.format(calc.jobAllowance)}</td></tr>
+                <tr><th>時間外加算（${formatPlainHours(calc.extra.overtimeHours)}時間）</th><td class="num">${yen.format(calc.extra.overtimePay)}</td></tr>
+                <tr><th>休日出勤加算（${formatPlainHours(calc.extra.holidayHours)}時間）</th><td class="num">${yen.format(calc.extra.holidayPay)}</td></tr>
+                <tr><th>深夜労働加算（${formatPlainHours(calc.extra.nightHours)}時間）</th><td class="num">${yen.format(calc.extra.nightPay)}</td></tr>
+                <tr><th>交通費（非課税）</th><td class="num">${yen.format(calc.transportAllowance)}</td></tr>
+                <tr><th>課税対象額合計</th><td class="num">${yen.format(calc.taxablePay)}</td></tr>
+                <tr class="payslip-total-row"><th>支給額合計</th><td class="num">${yen.format(calc.grossPay)}</td></tr>
+                <tr class="payslip-section-row"><th colspan="2">控除</th></tr>
+                <tr><th>社会保険</th><td class="num">${yen.format(calc.deductions.socialInsurance)}</td></tr>
+                <tr><th>厚生年金</th><td class="num">${yen.format(calc.deductions.pensionDeduction)}</td></tr>
+                <tr><th>介護保険</th><td class="num">${yen.format(calc.deductions.careInsuranceDeduction)}</td></tr>
+                <tr><th>雇用保険料</th><td class="num">${yen.format(calc.deductions.employmentInsuranceDeduction)}</td></tr>
+                <tr><th>所得税</th><td class="num">${yen.format(calc.deductions.incomeTax)}</td></tr>
+                <tr><th>住民税</th><td class="num">${yen.format(calc.deductions.residentTax)}</td></tr>
+                <tr><th>子供子育て支援金</th><td class="num">${yen.format(calc.deductions.childCareSupport)}</td></tr>
+                <tr class="payslip-total-row"><th>控除額合計</th><td class="num">${yen.format(calc.totalDeductions)}</td></tr>
+                <tr class="payslip-net-row"><th>差引支給額</th><td class="num"><strong>${yen.format(calc.netPay)}</strong></td></tr>
+                <tr class="payslip-section-row payslip-leave-row"><th colspan="2">有給</th></tr>
+                <tr><th>今月有給消化</th><td class="num">${formatPlainHours(calc.extra.monthlyPaidLeaveDays)}日</td></tr>
+                <tr><th>有給使用日</th><td>${escapeHtml(calc.extra.paidLeaveDates || "")}</td></tr>
+                <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee.hireDate)}日</td></tr>
+                <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
+                <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3 style="margin-top:12px;">勤務明細</h3>
+          ${shiftTable(calc.shifts)}
+        </div>
+      `;
+    }
+
+    function renderPayslipLegacyUnused() {
+      payslipDetail.innerHTML = `
+        <div class="report-title">
+          <h2>${formatMonth(payslipMonth.value)} 給料明細</h2>
+          <p>${escapeHtml(employee.name)} / ${escapeHtml(employee.position || "")}</p>
+        </div>
+        <div class="pay-hero">
+          <span>差引支給額</span>
+          <strong>${yen.format(calc.netPay)}</strong>
+        </div>
+        <div class="summary-grid">
+          ${metric("課税対象額", yen.format(calc.taxablePay), "green")}
+          ${metric("非課税交通費", yen.format(calc.transportAllowance), "blue")}
+          ${metric("控除額合計", yen.format(calc.totalDeductions), "red")}
+          ${metric("有給残数", `${paidLeaveRemaining(employee)}日`, "green")}
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><th>基本給</th><td class="num">${yen.format(calc.basePay)}</td></tr>
+              <tr><th>職務手当</th><td class="num">${yen.format(calc.jobAllowance)}</td></tr>
+              <tr><th>時間外加算（${formatPlainHours(calc.extra.overtimeHours)}時間）</th><td class="num">${yen.format(calc.extra.overtimePay)}</td></tr>
+              <tr><th>休日出勤加算（${formatPlainHours(calc.extra.holidayHours)}時間）</th><td class="num">${yen.format(calc.extra.holidayPay)}</td></tr>
+              <tr><th>深夜労働加算（${formatPlainHours(calc.extra.nightHours)}時間）</th><td class="num">${yen.format(calc.extra.nightPay)}</td></tr>
+              <tr><th>交通費（非課税）</th><td class="num">${yen.format(calc.transportAllowance)}</td></tr>
+              <tr><th>課税対象額合計</th><td class="num">${yen.format(calc.taxablePay)}</td></tr>
+              <tr><th>支給額合計</th><td class="num">${yen.format(calc.grossPay)}</td></tr>
+              <tr><th>社会保険</th><td class="num">${yen.format(calc.deductions.socialInsurance)}</td></tr>
+              <tr><th>厚生年金</th><td class="num">${yen.format(calc.deductions.pensionDeduction)}</td></tr>
+              <tr><th>介護保険</th><td class="num">${yen.format(calc.deductions.careInsuranceDeduction)}</td></tr>
+              <tr><th>雇用保険料</th><td class="num">${yen.format(calc.deductions.employmentInsuranceDeduction)}</td></tr>
+              <tr><th>所得税</th><td class="num">${yen.format(calc.deductions.incomeTax)}</td></tr>
+              <tr><th>住民税</th><td class="num">${yen.format(calc.deductions.residentTax)}</td></tr>
+              <tr><th>子供子育て支援金</th><td class="num">${yen.format(calc.deductions.childCareSupport)}</td></tr>
+              <tr><th>控除額合計</th><td class="num">${yen.format(calc.totalDeductions)}</td></tr>
+              <tr><th>差引支給額</th><td class="num"><strong>${yen.format(calc.netPay)}</strong></td></tr>
+              <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee.hireDate)}日</td></tr>
+              <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
+              <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 style="margin-top:18px;">勤務明細</h3>
+        ${shiftTable(calc.shifts)}
+      `;
+    }
+
+    function renderMonthly() {
+      const month = monthlyMonth.value || monthKey(new Date());
+      monthlyReportTitle.textContent = `${formatMonth(month)} 給与集計表`;
+      const rows = state.employees.map((employee) => payrollForEmployee(employee, month));
+      const totalPay = rows.reduce((sum, row) => sum + row.netPay, 0);
+      const totalDeductions = rows.reduce((sum, row) => sum + row.totalDeductions, 0);
+      const totalHours = rows.reduce((sum, row) => sum + row.hours, 0);
+      monthlySummary.innerHTML = [
+        metric("対象者", `${rows.length}人`, "green"),
+        metric("合計時間", formatHours(totalHours), "blue"),
+        metric("差引支給額合計", yen.format(totalPay), "amber"),
+        metric("控除合計", yen.format(totalDeductions), "red")
+      ].join("");
+      monthlyPayrollTable.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>氏名</th><th class="num">勤務日数</th><th class="num">勤務時間</th><th class="num">基本給</th><th class="num">職務手当</th><th class="num">時間外</th><th class="num">休日</th><th class="num">深夜</th><th class="num">交通費</th><th class="num">課税対象額</th><th class="num">控除合計</th><th class="num">差引支給額</th><th class="num">今月有給</th><th class="num">有給残</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map((row) => `
+              <tr>
+                <td>${escapeHtml(row.employee.name)}</td>
+                <td class="num">${row.days}日</td>
+                <td class="num">${formatHours(row.hours)}</td>
+                <td class="num">${yen.format(row.basePay)}</td>
+                <td class="num">${yen.format(row.jobAllowance)}</td>
+                <td class="num">${yen.format(row.extra.overtimePay)}</td>
+                <td class="num">${yen.format(row.extra.holidayPay)}</td>
+                <td class="num">${yen.format(row.extra.nightPay)}</td>
+                <td class="num">${yen.format(row.transportAllowance)}</td>
+                <td class="num">${yen.format(row.taxablePay)}</td>
+                <td class="num">${yen.format(row.totalDeductions)}</td>
+                <td class="num">${yen.format(row.netPay)}</td>
+                <td class="num">${formatPlainHours(row.extra.monthlyPaidLeaveDays)}日</td>
+                <td class="num">${paidLeaveRemaining(row.employee)}日</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function shiftTable(rows) {
+      if (!rows.length) return `<div class="empty">勤務記録がありません。</div>`;
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>日付</th><th>出勤</th><th>退勤</th><th class="num">勤務時間</th><th>メモ</th></tr>
+            </thead>
+            <tbody>
+              ${rows.map((shift) => `
+                <tr>
+                  <td>${escapeHtml(shift.date)}</td>
+                  <td>${formatTime(shift.start)}</td>
+                  <td>${shift.end ? formatTime(shift.end) : "未退勤"}</td>
+                  <td class="num">${formatHours(workHours(shift))}</td>
+                  <td>${escapeHtml(shift.memo || "")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function payrollForEmployee(employee, month, extraOverride = null) {
+      const shifts = state.shifts
+        .filter((shift) => shift.employeeId === employee.id && shift.date.slice(0, 7) === month)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+      const hours = shifts.reduce((sum, shift) => sum + workHours(shift), 0);
+      const days = new Set(shifts.map((shift) => shift.date)).size;
+      const basePay = Math.round(hours * employee.wage);
+      const transportAllowance = days > 0 ? Number(employee.transportAllowance || 0) : 0;
+      const jobAllowance = Number(employee.jobAllowance || 0);
+      const savedExtra = state.payrollExtras?.[payExtraKey(employee.id, month)] || {};
+      const extraHours = extraOverride || {
+        overtimeHours: Number(savedExtra.overtimeHours || 0),
+        holidayHours: Number(savedExtra.holidayHours || 0),
+        nightHours: Number(savedExtra.nightHours || 0)
+      };
+      const premiumRate = Number(employee.wage || 0) * 1.25;
+      const extra = {
+        overtimeHours: Number(extraHours.overtimeHours || 0),
+        holidayHours: Number(extraHours.holidayHours || 0),
+        nightHours: Number(extraHours.nightHours || 0),
+        monthlyPaidLeaveDays: Number(extraHours.monthlyPaidLeaveDays || 0),
+        paidLeaveDates: extraHours.paidLeaveDates || ""
+      };
+      extra.overtimePay = Math.round(extra.overtimeHours * premiumRate);
+      extra.holidayPay = Math.round(extra.holidayHours * premiumRate);
+      extra.nightPay = Math.round(extra.nightHours * premiumRate);
+      extra.totalPay = extra.overtimePay + extra.holidayPay + extra.nightPay;
+      const taxablePay = basePay + jobAllowance + extra.totalPay;
+      const grossPay = taxablePay + transportAllowance;
+      const employmentInsuranceAuto = calculateEmploymentInsurance(taxablePay + transportAllowance);
+      const socialInsuranceTotal = Number(employee.socialInsurance || 0) + Number(employee.pensionDeduction || 0) + Number(employee.careInsuranceDeduction || 0) + employmentInsuranceAuto;
+      const incomeTaxAuto = calculateEstimatedIncomeTax(taxablePay - socialInsuranceTotal);
+      const childCareSupportAuto = calculateChildCareSupport(grossPay, month);
+      const deductions = {
+        socialInsurance: Number(employee.socialInsurance || 0),
+        pensionDeduction: Number(employee.pensionDeduction || 0),
+        careInsuranceDeduction: Number(employee.careInsuranceDeduction || 0),
+        employmentInsuranceDeduction: employmentInsuranceAuto,
+        incomeTax: incomeTaxAuto,
+        residentTax: Number(employee.residentTax || 0),
+        childCareSupport: childCareSupportAuto
+      };
+      const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + value, 0);
+      const netPay = grossPay - totalDeductions;
+      return { employee, shifts, hours, days, basePay, jobAllowance, extra, transportAllowance, taxablePay, grossPay, deductions, totalDeductions, netPay, totalPay: netPay };
+    }
+
+    function exportMonthlyCsv() {
+      const month = monthlyMonth.value || monthKey(new Date());
+      const header = ["対象月", "氏名", "勤務日数", "勤務時間", "時給", "基本給", "職務手当", "時間外時間", "時間外加算", "休日出勤時間", "休日出勤加算", "深夜労働時間", "深夜労働加算", "交通費（非課税）", "課税対象額合計", "支給額合計", "社会保険", "厚生年金", "介護保険", "雇用保険料", "所得税", "住民税", "子供子育て支援金", "控除額合計", "差引支給額", "今月有給消化", "有給使用日", "有給付与", "有給使用済", "有給残"];
+      const body = state.employees.map((employee) => {
+        const row = payrollForEmployee(employee, month);
+        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee.hireDate), employee.paidLeaveUsed, paidLeaveRemaining(employee)];
+      });
+      download(`税理士提出_給与_${month}_${todayText()}.csv`, toCsv([header, ...body]), "text/csv;charset=utf-8");
+    }
+
+    function backupJson() {
+      download(`ROCOS_Time_バックアップ_${todayText()}.json`, JSON.stringify(state, null, 2), "application/json");
+    }
+
+    function restoreJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          state = normalizeState(JSON.parse(reader.result));
+          save();
+          render();
+        } catch {
+          alert("復元できませんでした。ファイルを確認してください。");
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function findEmployee(id) {
+      return state.employees.find((employee) => employee.id === id);
+    }
+
+    function paidLeaveRemaining(employee) {
+      return Math.max(0, legalPaidLeaveDays(employee.hireDate) - Number(employee.paidLeaveUsed || 0));
+    }
+
+    function calculateEmploymentInsurance(wageTotal) {
+      return Math.round(Math.max(0, Number(wageTotal || 0)) * 0.005);
+    }
+
+    function calculateEstimatedIncomeTax(taxableAfterSocialInsurance) {
+      const monthly = Math.max(0, Number(taxableAfterSocialInsurance || 0));
+      if (monthly < 88000) return 0;
+      return Math.round((monthly - 88000) * 0.03063);
+    }
+
+    function calculateChildCareSupport(grossPay, month) {
+      if (month && month < "2026-04") return 0;
+      return Math.round(Math.max(0, Number(grossPay || 0)) * 0.00115);
+    }
+
+    function legalPaidLeaveDays(hireDateValue) {
+      if (!hireDateValue) return 0;
+      const hire = new Date(`${hireDateValue}T00:00:00`);
+      const today = new Date();
+      const months = (today.getFullYear() - hire.getFullYear()) * 12 + (today.getMonth() - hire.getMonth()) - (today.getDate() < hire.getDate() ? 1 : 0);
+      if (months < 6) return 0;
+      if (months < 18) return 10;
+      if (months < 30) return 11;
+      if (months < 42) return 12;
+      if (months < 54) return 14;
+      if (months < 66) return 16;
+      if (months < 78) return 18;
+      return 20;
+    }
+
+    function markYesNo(selected) {
+      return selected === "有" ? "〇有 / 無" : "有 / 〇無";
+    }
+
+    function workHours(shift) {
+      if (!shift.end) return 0;
+      const ms = Math.max(0, new Date(shift.end) - new Date(shift.start));
+      return Math.round((ms / 1000 / 60 / 60) * 100) / 100;
+    }
+
+    function printSection(id) {
+      const source = document.getElementById(id);
+      const targetId = id === "contractDocument" ? "printOnlyContract" : id === "payslipPrintArea" ? "printOnlyPayslip" : "printOnlyEmployeeCard";
+      const target = document.getElementById(targetId);
+      target.innerHTML = source.innerHTML;
+      document.body.classList.toggle("print-contract", id === "contractDocument");
+      document.body.classList.toggle("print-payslip", id === "payslipPrintArea");
+      document.body.classList.toggle("print-employee-card", id !== "contractDocument" && id !== "payslipPrintArea");
+      window.print();
+      window.setTimeout(() => {
+        document.body.classList.remove("print-contract", "print-employee-card", "print-payslip");
+        target.innerHTML = "";
+      }, 500);
+    }
+
+    function printAllPayslips() {
+      const month = payslipMonth.value || monthKey(new Date());
+      if (!state.employees.length) return;
+      payslipDetail.innerHTML = `
+        <div class="payslip-sheet">
+          ${state.employees.map((employee) => payslipCardHtml(employee, month, payrollForEmployee(employee, month))).join("")}
+        </div>
+      `;
+      printSection("payslipPrintArea");
+      window.setTimeout(renderPayslip, 700);
+    }
+
+    function printMonthlyReport() {
+      document.body.classList.add("print-monthly");
+      window.print();
+      window.setTimeout(() => {
+        document.body.classList.remove("print-monthly");
+      }, 500);
+    }
+
+    function printContractForRosterEmployee() {
+      if (rosterEmployee.value) {
+        contractEmployee.value = rosterEmployee.value;
+        renderContract();
+      }
+      printSection("contractDocument");
+    }
+
+    function metric(label, value, className) {
+      return `<div class="metric ${className}"><span>${label}</span><strong>${value}</strong></div>`;
+    }
+
+    window.editShift = editShift;
+    window.editEmployee = editEmployee;
+    window.deleteEmployee = deleteEmployee;
+
+    function localDateTime(date, time) {
+      return new Date(`${date}T${time}:00`);
+    }
+
+    function monthKey(date) {
+      const value = date instanceof Date ? dateKeyLocal(date) : String(date);
+      return value.slice(0, 7);
+    }
+
+    function dateKey(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function dateKeyLocal(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function todayText() {
+      return dateKeyLocal(new Date());
+    }
+
+    function formatDateJa(value) {
+      if (!value) return "";
+      const [year, month, day] = value.split("-");
+      if (!year || !month || !day) return value;
+      return `${year}年${Number(month)}月${Number(day)}日`;
+    }
+
+    function formatTime(value) {
+      return timeFormat.format(new Date(value));
+    }
+
+    function formatHours(value) {
+      return `${value.toFixed(2)}時間`;
+    }
+
+    function formatPlainHours(value) {
+      return Number(value || 0).toFixed(2).replace(/\.00$/, "");
+    }
+
+    function formatMonth(month) {
+      if (!month) return "";
+      const [year, monthNumber] = month.split("-");
+      return `${year}年${Number(monthNumber)}月`;
+    }
+
+    function showPunchNotice(message) {
+      punchNotice.textContent = message;
+      window.setTimeout(() => {
+        if (punchNotice.textContent === message) punchNotice.textContent = "";
+      }, 3000);
+    }
+
+    function showEmployeeNotice(message) {
+      employeeNotice.textContent = message;
+      window.setTimeout(() => {
+        if (employeeNotice.textContent === message) employeeNotice.textContent = "";
+      }, 3000);
+    }
+
+    function showScheduleNotice(message) {
+      scheduleNotice.textContent = message;
+      window.setTimeout(() => {
+        if (scheduleNotice.textContent === message) scheduleNotice.textContent = "";
+      }, 3000);
+    }
+
+    function toCsv(rows) {
+      return "\ufeff" + rows.map((row) => row.map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
