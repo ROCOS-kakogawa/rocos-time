@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ROCO'S Time">
+  <rect width="512" height="512" rx="112" fill="#f5f7f6"/>
+  <circle cx="256" cy="232" r="146" fill="#236b48"/>
+  <circle cx="256" cy="232" r="112" fill="#ffffff"/>
+  <path d="M256 154v82l62 42" fill="none" stroke="#236b48" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 382c34-30 70-45 106-45s72 15 106 45" fill="none" stroke="#f0b33f" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="176" cy="172" r="18" fill="#f0b33f"/>
+  <circle cx="336" cy="172" r="18" fill="#f0b33f"/>
+  <text x="256" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="800" fill="#236b48">Time</text>
+</svg>

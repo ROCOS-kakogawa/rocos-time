@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ROCO'S Time</title>
+  <meta name="theme-color" content="#236b48">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ROCO'S Time">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud-config.js"></script>
   <style>
@@ -430,13 +436,18 @@
     }
     .employee-item {
       display: grid;
-      grid-template-columns: 1fr auto auto auto;
+      grid-template-columns: minmax(120px, 1fr) auto auto max-content;
       gap: 8px;
       align-items: center;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 8px;
       background: #fbfcfb;
+    }
+    .punch-record-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
     }
     .document {
       background: #fff;
@@ -543,11 +554,20 @@
       gap: 6px;
     }
     .icon-btn {
-      width: 34px;
+      min-width: 34px;
       height: 34px;
+      padding: 0 10px;
       border-radius: 8px;
       border-color: var(--line);
       background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .icon-btn.danger {
+      border-color: #e2c3be;
+      color: var(--red);
     }
 
     @media (max-width: 980px) {
@@ -1405,6 +1425,11 @@
     document.getElementById("addSchedule").addEventListener("click", addSchedule);
     document.getElementById("addManualShift").addEventListener("click", addManualShift);
     document.addEventListener("click", (event) => {
+      const deleteButton = event.target.closest("[data-delete-shift]");
+      if (deleteButton) {
+        deleteShift(deleteButton.dataset.deleteShift);
+        return;
+      }
       const editButton = event.target.closest("[data-edit-shift]");
       if (editButton) editShift(editButton.dataset.editShift);
     });
@@ -1893,6 +1918,17 @@
       return keep;
     }
 
+    function mergeDuplicateShiftsForDate(date) {
+      const employeeIds = [...new Set(state.shifts.filter((shift) => shift.date === date).map((shift) => shift.employeeId))];
+      let changed = false;
+      employeeIds.forEach((employeeIdValue) => {
+        const before = state.shifts.length;
+        mergeDuplicateShifts(employeeIdValue, date);
+        if (state.shifts.length !== before) changed = true;
+      });
+      return changed;
+    }
+
     function upsertShift(employeeIdValue, date, start, end, memo = "手入力") {
       const existing = mergeDuplicateShifts(employeeIdValue, date);
       const next = existing || {
@@ -1925,6 +1961,18 @@
       save();
       render();
       showPunchNotice(`${employee?.name || "従業員"} の勤務時間を訂正しました。`);
+    }
+
+    function deleteShift(shiftId) {
+      const shift = state.shifts.find((item) => item.id === shiftId);
+      if (!shift) return alert("勤務記録が見つかりません。");
+      const employee = findEmployee(shift.employeeId);
+      const label = `${employee?.name || "従業員"} ${shift.date} ${formatTime(shift.start)}-${shift.end ? formatTime(shift.end) : "未退勤"}`;
+      if (!confirm(`${label} の打刻を削除しますか？`)) return;
+      state.shifts = state.shifts.filter((item) => item.id !== shiftId);
+      save();
+      render();
+      showPunchNotice(`${employee?.name || "従業員"} の打刻を削除しました。`);
     }
 
     function addSchedule() {
@@ -2196,6 +2244,7 @@
 
     function renderTodayPunches() {
       const today = todayText();
+      if (mergeDuplicateShiftsForDate(today)) save();
       const rows = state.shifts.filter((shift) => shift.date === today).sort((a, b) => a.start.localeCompare(b.start));
       if (!rows.length) {
         todayPunches.innerHTML = `<div class="empty">今日の打刻はまだありません。</div>`;
@@ -2208,7 +2257,10 @@
             <strong>${escapeHtml(employee?.name || "削除済み")}</strong>
             <span>${formatTime(shift.start)} - ${shift.end ? formatTime(shift.end) : "出勤中"}</span>
             <span class="num">${formatHours(workHours(shift))}</span>
-            <button class="icon-btn" type="button" title="勤務時間を訂正" data-edit-shift="${shift.id}">訂正</button>
+            <span class="punch-record-actions">
+              <button class="icon-btn" type="button" title="勤務時間を訂正" data-edit-shift="${shift.id}">訂正</button>
+              <button class="icon-btn danger" type="button" title="打刻を削除" data-delete-shift="${shift.id}">削除</button>
+            </span>
           </div>
         `;
       }).join("");
@@ -2290,6 +2342,14 @@
 
     function renderCalendar() {
       const month = calendarMonth.value || monthKey(new Date());
+      let mergedMonth = false;
+      [...new Set(state.shifts.filter((shift) => shift.date && shift.date.slice(0, 7) === month).map((shift) => `${shift.employeeId}|${shift.date}`))].forEach((key) => {
+        const [employeeIdValue, date] = key.split("|");
+        const before = state.shifts.length;
+        mergeDuplicateShifts(employeeIdValue, date);
+        if (state.shifts.length !== before) mergedMonth = true;
+      });
+      if (mergedMonth) save();
       const rows = state.shifts
         .filter((shift) => shift.date.slice(0, 7) === month)
         .filter((shift) => calendarEmployee.value === "all" || shift.employeeId === calendarEmployee.value);
