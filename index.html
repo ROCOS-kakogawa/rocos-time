@@ -1320,7 +1320,7 @@
     const dateFormat = new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
 
     let state = loadState();
-    let activeMainPage = "punch";
+    let activeMainPage = "admin";
     let activeAdminPage = "calendar";
     let pendingPhoto = "";
     let contractSettings = loadContractSettings();
@@ -1483,6 +1483,7 @@
     initContractSettingsForm();
     loadPayExtrasForm();
     if (punchOnlyMode) document.body.classList.add("punch-only");
+    switchMainPage(activeMainPage);
     updateClock();
     window.setInterval(updateClock, 1000);
     render();
