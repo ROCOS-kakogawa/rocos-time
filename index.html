@@ -215,6 +215,27 @@
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
     }
+    .punch-person-card {
+      border: 2px solid var(--green);
+      border-radius: 8px;
+      background: var(--green-soft);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .punch-person-card label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--green);
+      font-size: 18px;
+    }
+    .punch-person-card select {
+      min-height: 70px;
+      border: 2px solid var(--green);
+      font-size: clamp(26px, 5vw, 42px);
+      font-weight: 900;
+      color: var(--ink);
+      background: #fff;
+    }
     .punch-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -225,6 +246,24 @@
       border-radius: 8px;
       font-size: clamp(26px, 5vw, 38px);
       font-weight: 800;
+    }
+    .schedule-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      min-width: 150px;
+    }
+    .schedule-action-btn {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-weight: 800;
+    }
+    .schedule-action-btn.danger {
+      background: var(--red-soft);
+      border-color: #e1b8b4;
+      color: var(--red);
     }
     .punch-in { background: var(--green); border-color: var(--green); color: #fff; }
     .punch-out { background: var(--blue); border-color: var(--blue); color: #fff; }
@@ -821,7 +860,7 @@
           <div class="clock-date" id="clockDate"></div>
           <div class="clock-time" id="clockTime"></div>
         </div>
-        <div class="field">
+        <div class="field punch-person-card">
           <label for="punchEmployee">従業員</label>
           <select id="punchEmployee"></select>
         </div>
@@ -2285,7 +2324,7 @@
                 <th>予定</th>
                 <th style="width: 130px;">担当</th>
                 <th>メモ</th>
-                <th style="width: 110px;" class="num">確認</th>
+                <th style="width: 170px;" class="num">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -2298,9 +2337,9 @@
                     <td>${schedule.employeeId === "all" ? "全員" : escapeHtml(employee?.name || "削除済み")}</td>
                     <td>${escapeHtml(schedule.memo || "")}</td>
                     <td>
-                      <div class="small-actions">
-                        <button class="icon-btn" type="button" title="確認" onclick="toggleSchedule('${schedule.id}')">${schedule.done ? "戻" : "済"}</button>
-                        <button class="icon-btn" type="button" title="削除" onclick="deleteSchedule('${schedule.id}')">×</button>
+                      <div class="schedule-actions">
+                        <button class="schedule-action-btn" type="button" onclick="toggleSchedule('${schedule.id}')">${schedule.done ? "戻す" : "済"}</button>
+                        <button class="schedule-action-btn danger" type="button" onclick="deleteSchedule('${schedule.id}')">削除</button>
                       </div>
                     </td>
                   </tr>
