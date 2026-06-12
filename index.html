@@ -265,6 +265,32 @@
       border-color: #e1b8b4;
       color: var(--red);
     }
+    .schedule-card-list {
+      display: grid;
+      gap: 10px;
+    }
+    .schedule-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .schedule-card-main {
+      display: grid;
+      gap: 4px;
+      font-size: 17px;
+    }
+    .schedule-card-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+    .schedule-card-meta {
+      color: var(--muted);
+      font-weight: 700;
+    }
     .punch-in { background: var(--green); border-color: var(--green); color: #fff; }
     .punch-out { background: var(--blue); border-color: var(--blue); color: #fff; }
     .btn {
@@ -1062,6 +1088,13 @@
                   <span>時間</span>
                 </div>
               </div>
+              <div class="field">
+                <label for="weeklyWorkDays">週所定労働日数</label>
+                <div class="unit-input">
+                  <input id="weeklyWorkDays" type="number" min="1" max="5" step="1" placeholder="例: 5">
+                  <span>日</span>
+                </div>
+              </div>
             </div>
             <div class="field">
               <label for="educationHistory">学歴</label>
@@ -1413,6 +1446,7 @@
     const educationHistory = document.getElementById("educationHistory");
     const careerHistory = document.getElementById("careerHistory");
     const standardHours = document.getElementById("standardHours");
+    const weeklyWorkDays = document.getElementById("weeklyWorkDays");
     const paidLeaveTotal = document.getElementById("paidLeaveTotal");
     const paidLeaveUsed = document.getElementById("paidLeaveUsed");
     const transportAllowance = document.getElementById("transportAllowance");
@@ -1476,6 +1510,8 @@
     document.getElementById("clearEmployee").addEventListener("click", clearEmployeeForm);
     employeePhoto.addEventListener("change", handleEmployeePhoto);
     hireDate.addEventListener("change", updatePaidLeaveAuto);
+    standardHours.addEventListener("input", updatePaidLeaveAuto);
+    weeklyWorkDays.addEventListener("input", updatePaidLeaveAuto);
     paidLeaveUsed.addEventListener("input", updatePaidLeaveAuto);
     rosterEmployee.addEventListener("change", renderEmployeeCard);
     document.getElementById("printRoster").addEventListener("click", () => printSection("employeeCardDocument"));
@@ -1575,6 +1611,7 @@
         educationHistory: employee.educationHistory || employee.resumeHistory || "",
         careerHistory: employee.careerHistory || "",
         standardHours: Number(employee.standardHours || 6),
+        weeklyWorkDays: Number(employee.weeklyWorkDays || 5),
         paidLeaveTotal: Number(employee.paidLeaveTotal || 0),
         paidLeaveUsed: Number(employee.paidLeaveUsed || 0),
         transportAllowance: Number(employee.transportAllowance || 0),
@@ -2079,7 +2116,12 @@
         educationHistory: educationHistory.value.trim(),
         careerHistory: careerHistory.value.trim(),
         standardHours: Number(standardHours.value || 6),
-        paidLeaveTotal: legalPaidLeaveDays(hireDate.value || todayText()),
+        weeklyWorkDays: Number(weeklyWorkDays.value || 5),
+        paidLeaveTotal: legalPaidLeaveDays({
+          hireDate: hireDate.value || todayText(),
+          standardHours: Number(standardHours.value || 6),
+          weeklyWorkDays: Number(weeklyWorkDays.value || 5)
+        }),
         paidLeaveUsed: Number(paidLeaveUsed.value || 0),
         transportAllowance: Number(transportAllowance.value || 0),
         socialInsurance: Number(socialInsurance.value || 0),
@@ -2126,7 +2168,8 @@
       educationHistory.value = employee.educationHistory || "";
       careerHistory.value = employee.careerHistory || "";
       standardHours.value = employee.standardHours;
-      paidLeaveTotal.value = employee.paidLeaveTotal;
+      weeklyWorkDays.value = employee.weeklyWorkDays || 5;
+      paidLeaveTotal.value = legalPaidLeaveDays(employee);
       paidLeaveUsed.value = employee.paidLeaveUsed;
       transportAllowance.value = employee.transportAllowance;
       socialInsurance.value = employee.socialInsurance || "";
@@ -2174,6 +2217,7 @@
       educationHistory.value = "";
       careerHistory.value = "";
       standardHours.value = "6";
+      weeklyWorkDays.value = "5";
       paidLeaveTotal.value = "";
       paidLeaveUsed.value = "";
       transportAllowance.value = "";
@@ -2201,7 +2245,11 @@
     }
 
     function updatePaidLeaveAuto() {
-      paidLeaveTotal.value = legalPaidLeaveDays(hireDate.value || todayText());
+      paidLeaveTotal.value = legalPaidLeaveDays({
+        hireDate: hireDate.value || todayText(),
+        standardHours: Number(standardHours.value || 6),
+        weeklyWorkDays: Number(weeklyWorkDays.value || 5)
+      });
     }
 
     function payExtraKey(employeeId, month) {
@@ -2316,37 +2364,24 @@
         return;
       }
       todaySchedules.innerHTML = `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 86px;">時間</th>
-                <th>予定</th>
-                <th style="width: 130px;">担当</th>
-                <th>メモ</th>
-                <th style="width: 170px;" class="num">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map((schedule) => {
-                const employee = findEmployee(schedule.employeeId);
-                return `
-                  <tr>
-                    <td>${escapeHtml(schedule.time || "")}</td>
-                    <td>${schedule.done ? "済 " : ""}${escapeHtml(schedule.title)}</td>
-                    <td>${schedule.employeeId === "all" ? "全員" : escapeHtml(employee?.name || "削除済み")}</td>
-                    <td>${escapeHtml(schedule.memo || "")}</td>
-                    <td>
-                      <div class="schedule-actions">
-                        <button class="schedule-action-btn" type="button" onclick="toggleSchedule('${schedule.id}')">${schedule.done ? "戻す" : "済"}</button>
-                        <button class="schedule-action-btn danger" type="button" onclick="deleteSchedule('${schedule.id}')">削除</button>
-                      </div>
-                    </td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
-          </table>
+        <div class="schedule-card-list">
+          ${rows.map((schedule) => {
+            const employee = findEmployee(schedule.employeeId);
+            const assignee = schedule.employeeId === "all" ? "全員" : (employee?.name || "削除済み");
+            return `
+              <div class="schedule-card">
+                <div class="schedule-card-main">
+                  <div class="schedule-card-title">${schedule.done ? "済 " : ""}${escapeHtml(schedule.title)}</div>
+                  <div class="schedule-card-meta">${escapeHtml(schedule.time || "時間未設定")} / ${escapeHtml(assignee)}</div>
+                  ${schedule.memo ? `<div>${escapeHtml(schedule.memo)}</div>` : ""}
+                </div>
+                <div class="schedule-actions">
+                  <button class="schedule-action-btn" type="button" onclick="toggleSchedule('${schedule.id}')">${schedule.done ? "戻す" : "済"}</button>
+                  <button class="schedule-action-btn danger" type="button" onclick="deleteSchedule('${schedule.id}')">削除</button>
+                </div>
+              </div>
+            `;
+          }).join("")}
         </div>
       `;
     }
@@ -2517,7 +2552,7 @@
         : "定め無し";
       const workStart = contractSettings.timePreset === "custom" ? (contractSettings.startTime || "____:____") : "08:00";
       const workEnd = contractSettings.timePreset === "custom" ? (contractSettings.endTime || "____:____") : "16:00";
-      const weeklyHours = Number(employee.standardHours || 0) * 5;
+      const weeklyHours = Number(employee.standardHours || 0) * Number(employee.weeklyWorkDays || 5);
       const weeklyHoursText = weeklyHours ? `${weeklyHours.toFixed(2).replace(/\.00$/, "")}時間` : "____時間";
       contractDocument.innerHTML = `
         <h2>雇用契約書</h2>
@@ -2530,7 +2565,7 @@
           <p><strong>従事すべき業務の内容:</strong> ${escapeHtml(employee.position || "会社が指定する業務")}</p>
           <p><strong>始業・終業の時刻:</strong> 始業 ${escapeHtml(workStart)} / 終業 ${escapeHtml(workEnd)}</p>
           <p><strong>休憩時間:</strong> ${escapeHtml(breakMinutes)}分</p>
-          <p><strong>週所定労働時間:</strong> ${escapeHtml(weeklyHoursText)}（1日の労働時間×5日）</p>
+          <p><strong>週所定労働時間:</strong> ${escapeHtml(weeklyHoursText)}（1日の労働時間×週所定労働日数）</p>
           <p><strong>所定以外の労働:</strong> ${markYesNo(contractSettings.overtime)}</p>
           <p><strong>休日労働:</strong> ${markYesNo(contractSettings.holidayWork)}</p>
           <p><strong>休日:</strong> 土曜日、日曜日、国民の祝日</p>
@@ -2630,7 +2665,7 @@
                 <tr class="payslip-section-row payslip-leave-row"><th colspan="2">有給</th></tr>
                 <tr><th>今月有給消化</th><td class="num">${formatPlainHours(calc.extra.monthlyPaidLeaveDays)}日</td></tr>
                 <tr><th>有給使用日</th><td>${escapeHtml(calc.extra.paidLeaveDates || "")}</td></tr>
-                <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee.hireDate)}日</td></tr>
+                <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
                 <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
                 <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
               </tbody>
@@ -2678,7 +2713,7 @@
               <tr><th>子供子育て支援金</th><td class="num">${yen.format(calc.deductions.childCareSupport)}</td></tr>
               <tr><th>控除額合計</th><td class="num">${yen.format(calc.totalDeductions)}</td></tr>
               <tr><th>差引支給額</th><td class="num"><strong>${yen.format(calc.netPay)}</strong></td></tr>
-              <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee.hireDate)}日</td></tr>
+              <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
               <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
               <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
             </tbody>
@@ -2807,7 +2842,7 @@
       const header = ["対象月", "氏名", "勤務日数", "勤務時間", "時給", "基本給", "職務手当", "時間外時間", "時間外加算", "休日出勤時間", "休日出勤加算", "深夜労働時間", "深夜労働加算", "交通費（非課税）", "課税対象額合計", "支給額合計", "社会保険", "厚生年金", "介護保険", "雇用保険料", "所得税", "住民税", "子供子育て支援金", "控除額合計", "差引支給額", "今月有給消化", "有給使用日", "有給付与", "有給使用済", "有給残"];
       const body = state.employees.map((employee) => {
         const row = payrollForEmployee(employee, month);
-        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee.hireDate), employee.paidLeaveUsed, paidLeaveRemaining(employee)];
+        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee), employee.paidLeaveUsed, paidLeaveRemaining(employee)];
       });
       download(`税理士提出_給与_${month}_${todayText()}.csv`, toCsv([header, ...body]), "text/csv;charset=utf-8");
     }
@@ -2839,7 +2874,7 @@
     }
 
     function paidLeaveRemaining(employee) {
-      return Math.max(0, legalPaidLeaveDays(employee.hireDate) - Number(employee.paidLeaveUsed || 0));
+      return Math.max(0, legalPaidLeaveDays(employee) - Number(employee.paidLeaveUsed || 0));
     }
 
     function calculateEmploymentInsurance(wageTotal) {
@@ -2857,19 +2892,28 @@
       return Math.round(Math.max(0, Number(grossPay || 0)) * 0.00115);
     }
 
-    function legalPaidLeaveDays(hireDateValue) {
+    function legalPaidLeaveDays(employeeOrHireDate) {
+      const hireDateValue = typeof employeeOrHireDate === "string"
+        ? employeeOrHireDate
+        : employeeOrHireDate?.hireDate;
       if (!hireDateValue) return 0;
       const hire = new Date(`${hireDateValue}T00:00:00`);
       const today = new Date();
       const months = (today.getFullYear() - hire.getFullYear()) * 12 + (today.getMonth() - hire.getMonth()) - (today.getDate() < hire.getDate() ? 1 : 0);
       if (months < 6) return 0;
-      if (months < 18) return 10;
-      if (months < 30) return 11;
-      if (months < 42) return 12;
-      if (months < 54) return 14;
-      if (months < 66) return 16;
-      if (months < 78) return 18;
-      return 20;
+      const step = months < 18 ? 0 : months < 30 ? 1 : months < 42 ? 2 : months < 54 ? 3 : months < 66 ? 4 : months < 78 ? 5 : 6;
+      const weeklyWorkDays = Math.max(1, Math.min(5, Math.round(Number(employeeOrHireDate?.weeklyWorkDays || 5))));
+      const standardHours = Number(employeeOrHireDate?.standardHours || 0);
+      const weeklyHours = weeklyWorkDays * standardHours;
+      const regular = [10, 11, 12, 14, 16, 18, 20];
+      const proportional = {
+        4: [7, 8, 9, 10, 12, 13, 15],
+        3: [5, 6, 6, 8, 9, 10, 11],
+        2: [3, 4, 4, 5, 6, 6, 7],
+        1: [1, 2, 2, 2, 3, 3, 3]
+      };
+      if (weeklyWorkDays >= 5 || weeklyHours >= 30) return regular[step];
+      return (proportional[weeklyWorkDays] || regular)[step];
     }
 
     function markYesNo(selected) {
