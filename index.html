@@ -200,6 +200,24 @@
       color: var(--muted);
       font-weight: 700;
     }
+    .resident-tax-monthly-field {
+      grid-column: 1 / -1;
+    }
+    .resident-tax-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(6, minmax(90px, 1fr));
+      margin-top: 8px;
+    }
+    .resident-tax-grid label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .resident-tax-grid input {
+      margin-top: 4px;
+      width: 100%;
+    }
     .clock {
       text-align: center;
       padding: 22px 14px;
@@ -1113,7 +1131,7 @@
             <div class="three">
               <div class="field">
                 <label for="paidLeaveUsed">有給使用済</label>
-                <input id="paidLeaveUsed" type="number" min="0" step="0.5" placeholder="例: 2">
+                <input id="paidLeaveUsed" type="number" min="0" step="1" placeholder="例: 2">
               </div>
               <div class="field">
                 <label for="transportAllowance">交通費/月</label>
@@ -1486,6 +1504,9 @@
     const monthlySummary = document.getElementById("monthlySummary");
     const monthlyPayrollTable = document.getElementById("monthlyPayrollTable");
     const monthlyReportTitle = document.getElementById("monthlyReportTitle");
+    let residentTaxMonthInputs = [];
+
+    createResidentTaxMonthlyFields();
 
     document.querySelectorAll("[data-main-page]").forEach((button) => {
       button.addEventListener("click", () => switchMainPage(button.dataset.mainPage));
@@ -1587,6 +1608,78 @@
       });
     }
 
+    function createResidentTaxMonthlyFields() {
+      if (!residentTax || document.getElementById("residentTaxMonthlyGrid")) return;
+      const wrapper = document.createElement("div");
+      wrapper.className = "field resident-tax-monthly-field";
+      wrapper.innerHTML = `
+        <h3 style="margin-top:18px;">住民税（月別）</h3>
+        <div class="resident-tax-grid" id="residentTaxMonthlyGrid">
+          ${Array.from({ length: 12 }, (_, index) => {
+            const month = String(index + 1).padStart(2, "0");
+            return `<label>${index + 1}月<input data-resident-tax-month="${month}" type="number" min="0" step="1" placeholder="0"></label>`;
+          }).join("")}
+        </div>
+      `;
+      wrapper.replaceChildren();
+      const title = document.createElement("h3");
+      title.style.marginTop = "18px";
+      title.textContent = "Resident tax monthly";
+      const grid = document.createElement("div");
+      grid.className = "resident-tax-grid";
+      grid.id = "residentTaxMonthlyGrid";
+      for (let index = 1; index <= 12; index += 1) {
+        const month = String(index).padStart(2, "0");
+        const label = document.createElement("label");
+        const caption = document.createElement("span");
+        const input = document.createElement("input");
+        caption.textContent = `${index}月`;
+        input.dataset.residentTaxMonth = month;
+        input.type = "number";
+        input.min = "0";
+        input.step = "1";
+        input.placeholder = "0";
+        label.append(caption, input);
+        grid.append(label);
+      }
+      wrapper.append(title, grid);
+      const target = residentTax.closest(".three");
+      if (target) target.after(wrapper);
+      residentTaxMonthInputs = [...wrapper.querySelectorAll("[data-resident-tax-month]")];
+    }
+
+    function normalizeResidentTaxMonthly(values = {}) {
+      const result = {};
+      for (let month = 1; month <= 12; month += 1) {
+        const key = String(month).padStart(2, "0");
+        const value = Number(values[key] || 0);
+        if (value > 0) result[key] = value;
+      }
+      return result;
+    }
+
+    function residentTaxMonthlyFromForm() {
+      const result = {};
+      residentTaxMonthInputs.forEach((input) => {
+        const value = Number(input.value || 0);
+        if (value > 0) result[input.dataset.residentTaxMonth] = value;
+      });
+      return result;
+    }
+
+    function fillResidentTaxMonthly(values = {}) {
+      residentTaxMonthInputs.forEach((input) => {
+        input.value = values[input.dataset.residentTaxMonth] || "";
+      });
+    }
+
+    function residentTaxForMonth(employee, month) {
+      const key = month ? String(month).slice(5, 7) : "";
+      const monthly = employee.residentTaxMonthly || {};
+      if (key && Object.prototype.hasOwnProperty.call(monthly, key)) return Number(monthly[key] || 0);
+      return Number(employee.residentTax || 0);
+    }
+
     function normalizeState(raw) {
       const employees = (raw.employees || []).map((employee) => ({
         id: employee.id || crypto.randomUUID(),
@@ -1621,6 +1714,7 @@
         employmentInsuranceDeduction: Number(employee.employmentInsuranceDeduction || 0),
         incomeTax: Number(employee.incomeTax || 0),
         residentTax: Number(employee.residentTax || 0),
+        residentTaxMonthly: normalizeResidentTaxMonthly(employee.residentTaxMonthly),
         childCareSupport: Number(employee.childCareSupport || 0),
         memo: employee.memo || "",
         rosterRemarks: employee.rosterRemarks || ""
@@ -2130,6 +2224,7 @@
         employmentInsuranceDeduction: Number(employmentInsuranceDeduction.value || 0),
         incomeTax: Number(incomeTax.value || 0),
         residentTax: Number(residentTax.value || 0),
+        residentTaxMonthly: residentTaxMonthlyFromForm(),
         childCareSupport: Number(childCareSupport.value || 0),
         memo: employeeMemo.value.trim(),
         rosterRemarks: rosterRemarks.value.trim()
@@ -2178,6 +2273,7 @@
       employmentInsuranceDeduction.value = employee.employmentInsuranceDeduction || "";
       incomeTax.value = employee.incomeTax || "";
       residentTax.value = employee.residentTax || "";
+      fillResidentTaxMonthly(employee.residentTaxMonthly || {});
       childCareSupport.value = employee.childCareSupport || "";
       employeeMemo.value = employee.memo;
       rosterRemarks.value = employee.rosterRemarks || "";
@@ -2227,6 +2323,7 @@
       employmentInsuranceDeduction.value = "";
       incomeTax.value = "";
       residentTax.value = "";
+      fillResidentTaxMonthly({});
       childCareSupport.value = "";
       employeeMemo.value = "";
       rosterRemarks.value = "";
@@ -2829,7 +2926,7 @@
         careInsuranceDeduction: Number(employee.careInsuranceDeduction || 0),
         employmentInsuranceDeduction: employmentInsuranceAuto,
         incomeTax: incomeTaxAuto,
-        residentTax: Number(employee.residentTax || 0),
+        residentTax: residentTaxForMonth(employee, month),
         childCareSupport: childCareSupportAuto
       };
       const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + value, 0);
