@@ -1506,6 +1506,7 @@
     const monthlyReportTitle = document.getElementById("monthlyReportTitle");
     let residentTaxMonthInputs = [];
 
+    arrangeDeductionFields();
     createResidentTaxMonthlyFields();
 
     document.querySelectorAll("[data-main-page]").forEach((button) => {
@@ -1608,6 +1609,20 @@
       });
     }
 
+    function arrangeDeductionFields() {
+      const residentField = residentTax?.closest(".field");
+      const childField = childCareSupport?.closest(".field");
+      const oldChildRow = childField?.parentElement;
+      if (!residentField || !childField || residentField === childField) return;
+      residentTax.type = "hidden";
+      residentTax.value = residentTax.value || "0";
+      childField.appendChild(residentTax);
+      residentField.replaceWith(childField);
+      if (oldChildRow && oldChildRow !== childField.parentElement && !oldChildRow.querySelector(".field")) {
+        oldChildRow.style.display = "none";
+      }
+    }
+
     function createResidentTaxMonthlyFields() {
       if (!residentTax || document.getElementById("residentTaxMonthlyGrid")) return;
       const wrapper = document.createElement("div");
@@ -1624,7 +1639,7 @@
       wrapper.replaceChildren();
       const title = document.createElement("h3");
       title.style.marginTop = "18px";
-      title.textContent = "Resident tax monthly";
+      title.textContent = "住民税（月別）";
       const grid = document.createElement("div");
       grid.className = "resident-tax-grid";
       grid.id = "residentTaxMonthlyGrid";
