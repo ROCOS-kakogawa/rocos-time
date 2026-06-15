@@ -1106,7 +1106,7 @@
             </div>
             <div class="three">
               <div class="field">
-                <label for="paidLeaveTotal">有給自動付与日数</label>
+                <label for="paidLeaveTotal">有給付与合計</label>
                 <input id="paidLeaveTotal" type="number" min="0" step="0.5" readonly placeholder="雇用年月日から自動計算">
               </div>
             </div>
@@ -2665,7 +2665,7 @@
                 <tr class="payslip-section-row payslip-leave-row"><th colspan="2">有給</th></tr>
                 <tr><th>今月有給消化</th><td class="num">${formatPlainHours(calc.extra.monthlyPaidLeaveDays)}日</td></tr>
                 <tr><th>有給使用日</th><td>${escapeHtml(calc.extra.paidLeaveDates || "")}</td></tr>
-                <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
+                <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee, calc.month)}日</td></tr>
                 <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
                 <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee, calc.month)}日</td></tr>
               </tbody>
@@ -2713,7 +2713,7 @@
               <tr><th>子供子育て支援金</th><td class="num">${yen.format(calc.deductions.childCareSupport)}</td></tr>
               <tr><th>控除額合計</th><td class="num">${yen.format(calc.totalDeductions)}</td></tr>
               <tr><th>差引支給額</th><td class="num"><strong>${yen.format(calc.netPay)}</strong></td></tr>
-              <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
+              <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee, month)}日</td></tr>
               <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
               <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee, month)}日</td></tr>
             </tbody>
@@ -2842,7 +2842,7 @@
       const header = ["対象月", "氏名", "勤務日数", "勤務時間", "時給", "基本給", "職務手当", "時間外時間", "時間外加算", "休日出勤時間", "休日出勤加算", "深夜労働時間", "深夜労働加算", "交通費（非課税）", "課税対象額合計", "支給額合計", "社会保険", "厚生年金", "介護保険", "雇用保険料", "所得税", "住民税", "子供子育て支援金", "控除額合計", "差引支給額", "今月有給消化", "有給使用日", "有給付与", "有給使用済", "有給残"];
       const body = state.employees.map((employee) => {
         const row = payrollForEmployee(employee, month);
-        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee), employee.paidLeaveUsed, paidLeaveRemaining(employee, month)];
+        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee, month), employee.paidLeaveUsed, paidLeaveRemaining(employee, month)];
       });
       download(`税理士提出_給与_${month}_${todayText()}.csv`, toCsv([header, ...body]), "text/csv;charset=utf-8");
     }
@@ -2874,7 +2874,7 @@
     }
 
     function paidLeaveRemaining(employee, month = null) {
-      return Math.max(0, legalPaidLeaveDays(employee) - paidLeaveUsedTotal(employee, month));
+      return Math.max(0, legalPaidLeaveDays(employee, month) - paidLeaveUsedTotal(employee, month));
     }
 
     function paidLeaveUsedTotal(employee, month = null) {
@@ -2899,16 +2899,13 @@
       return Math.round(Math.max(0, Number(grossPay || 0)) * 0.00115);
     }
 
-    function legalPaidLeaveDays(employeeOrHireDate) {
+    function legalPaidLeaveDays(employeeOrHireDate, asOf = null) {
       const hireDateValue = typeof employeeOrHireDate === "string"
         ? employeeOrHireDate
         : employeeOrHireDate?.hireDate;
       if (!hireDateValue) return 0;
       const hire = new Date(`${hireDateValue}T00:00:00`);
-      const today = new Date();
-      const months = (today.getFullYear() - hire.getFullYear()) * 12 + (today.getMonth() - hire.getMonth()) - (today.getDate() < hire.getDate() ? 1 : 0);
-      if (months < 6) return 0;
-      const step = months < 18 ? 0 : months < 30 ? 1 : months < 42 ? 2 : months < 54 ? 3 : months < 66 ? 4 : months < 78 ? 5 : 6;
+      const asOfDate = paidLeaveAsOfDate(asOf);
       const weeklyWorkDays = Math.max(1, Math.min(5, Math.round(Number(employeeOrHireDate?.weeklyWorkDays || 5))));
       const standardHours = Number(employeeOrHireDate?.standardHours || 0);
       const weeklyHours = weeklyWorkDays * standardHours;
@@ -2919,8 +2916,40 @@
         2: [3, 4, 4, 5, 6, 6, 7],
         1: [1, 2, 2, 2, 3, 3, 3]
       };
-      if (weeklyWorkDays >= 5 || weeklyHours >= 30) return regular[step];
-      return (proportional[weeklyWorkDays] || regular)[step];
+      const table = weeklyWorkDays >= 5 || weeklyHours >= 30 ? regular : (proportional[weeklyWorkDays] || regular);
+      let total = 0;
+      for (let index = 0; index < 80; index += 1) {
+        const grantDate = addMonths(hire, 6 + index * 12);
+        if (grantDate > asOfDate) break;
+        const expiresAt = addYears(grantDate, 2);
+        if (expiresAt > asOfDate) total += table[Math.min(index, table.length - 1)];
+      }
+      return total;
+    }
+
+    function paidLeaveAsOfDate(value) {
+      if (typeof value === "string" && /^\d{4}-\d{2}$/.test(value)) {
+        const [year, month] = value.split("-").map(Number);
+        return new Date(year, month, 0, 23, 59, 59);
+      }
+      if (typeof value === "string" && value) return new Date(`${value}T23:59:59`);
+      return new Date();
+    }
+
+    function addMonths(dateValue, months) {
+      const next = new Date(dateValue);
+      const day = next.getDate();
+      next.setMonth(next.getMonth() + months);
+      if (next.getDate() !== day) next.setDate(0);
+      next.setHours(0, 0, 0, 0);
+      return next;
+    }
+
+    function addYears(dateValue, years) {
+      const next = new Date(dateValue);
+      next.setFullYear(next.getFullYear() + years);
+      next.setHours(0, 0, 0, 0);
+      return next;
     }
 
     function markYesNo(selected) {
