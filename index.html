@@ -2638,7 +2638,7 @@
             ${metric("課税対象額", yen.format(calc.taxablePay), "green")}
             ${metric("非課税交通費", yen.format(calc.transportAllowance), "blue")}
             ${metric("控除額合計", yen.format(calc.totalDeductions), "red")}
-            ${metric("有給残数", `${paidLeaveRemaining(employee)}日`, "green")}
+            ${metric("有給残数", `${paidLeaveRemaining(employee, calc.month)}日`, "green")}
           </div>
           <div class="table-wrap">
             <table>
@@ -2667,7 +2667,7 @@
                 <tr><th>有給使用日</th><td>${escapeHtml(calc.extra.paidLeaveDates || "")}</td></tr>
                 <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
                 <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
-                <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
+                <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee, calc.month)}日</td></tr>
               </tbody>
             </table>
           </div>
@@ -2691,7 +2691,7 @@
           ${metric("課税対象額", yen.format(calc.taxablePay), "green")}
           ${metric("非課税交通費", yen.format(calc.transportAllowance), "blue")}
           ${metric("控除額合計", yen.format(calc.totalDeductions), "red")}
-          ${metric("有給残数", `${paidLeaveRemaining(employee)}日`, "green")}
+          ${metric("有給残数", `${paidLeaveRemaining(employee, month)}日`, "green")}
         </div>
         <div class="table-wrap">
           <table>
@@ -2715,7 +2715,7 @@
               <tr><th>差引支給額</th><td class="num"><strong>${yen.format(calc.netPay)}</strong></td></tr>
               <tr><th>有給付与</th><td class="num">${legalPaidLeaveDays(employee)}日</td></tr>
               <tr><th>有給使用済</th><td class="num">${employee.paidLeaveUsed || 0}日</td></tr>
-              <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee)}日</td></tr>
+              <tr><th>有給残数</th><td class="num">${paidLeaveRemaining(employee, month)}日</td></tr>
             </tbody>
           </table>
         </div>
@@ -2758,7 +2758,7 @@
                 <td class="num">${yen.format(row.totalDeductions)}</td>
                 <td class="num">${yen.format(row.netPay)}</td>
                 <td class="num">${formatPlainHours(row.extra.monthlyPaidLeaveDays)}日</td>
-                <td class="num">${paidLeaveRemaining(row.employee)}日</td>
+                <td class="num">${paidLeaveRemaining(row.employee, month)}日</td>
               </tr>
             `).join("")}
           </tbody>
@@ -2842,7 +2842,7 @@
       const header = ["対象月", "氏名", "勤務日数", "勤務時間", "時給", "基本給", "職務手当", "時間外時間", "時間外加算", "休日出勤時間", "休日出勤加算", "深夜労働時間", "深夜労働加算", "交通費（非課税）", "課税対象額合計", "支給額合計", "社会保険", "厚生年金", "介護保険", "雇用保険料", "所得税", "住民税", "子供子育て支援金", "控除額合計", "差引支給額", "今月有給消化", "有給使用日", "有給付与", "有給使用済", "有給残"];
       const body = state.employees.map((employee) => {
         const row = payrollForEmployee(employee, month);
-        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee), employee.paidLeaveUsed, paidLeaveRemaining(employee)];
+        return [month, employee.name, row.days, row.hours.toFixed(2), employee.wage, row.basePay, row.jobAllowance, row.extra.overtimeHours, row.extra.overtimePay, row.extra.holidayHours, row.extra.holidayPay, row.extra.nightHours, row.extra.nightPay, row.transportAllowance, row.taxablePay, row.grossPay, row.deductions.socialInsurance, row.deductions.pensionDeduction, row.deductions.careInsuranceDeduction, row.deductions.employmentInsuranceDeduction, row.deductions.incomeTax, row.deductions.residentTax, row.deductions.childCareSupport, row.totalDeductions, row.netPay, row.extra.monthlyPaidLeaveDays, row.extra.paidLeaveDates, legalPaidLeaveDays(employee), employee.paidLeaveUsed, paidLeaveRemaining(employee, month)];
       });
       download(`税理士提出_給与_${month}_${todayText()}.csv`, toCsv([header, ...body]), "text/csv;charset=utf-8");
     }
@@ -2873,8 +2873,15 @@
       return state.employees.find((employee) => employee.id === id);
     }
 
-    function paidLeaveRemaining(employee) {
-      return Math.max(0, legalPaidLeaveDays(employee) - Number(employee.paidLeaveUsed || 0));
+    function paidLeaveRemaining(employee, month = null) {
+      return Math.max(0, legalPaidLeaveDays(employee) - paidLeaveUsedTotal(employee, month));
+    }
+
+    function paidLeaveUsedTotal(employee, month = null) {
+      const baseUsed = Number(employee.paidLeaveUsed || 0);
+      if (!month || !state.payrollExtras) return baseUsed;
+      const thisMonth = Number(state.payrollExtras[payExtraKey(employee.id, month)]?.monthlyPaidLeaveDays || 0);
+      return baseUsed + thisMonth;
     }
 
     function calculateEmploymentInsurance(wageTotal) {
