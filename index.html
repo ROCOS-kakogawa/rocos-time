@@ -1322,7 +1322,14 @@
               <button class="btn" id="printAllPayslips" type="button">全員分を印刷</button>
             </div>
           </div>
-          <h3 style="margin-top:18px;">加算時間</h3>
+        </div>
+
+        <section class="panel" id="payslipPrintArea" style="margin-top:18px;">
+          <div id="payslipDetail"></div>
+        </section>
+
+        <div class="panel no-print" style="margin-top:18px;">
+          <h3>加算時間</h3>
           <div class="three">
             <div class="field">
               <label for="overtimeHours">時間外</label>
@@ -1365,9 +1372,7 @@
             </div>
           </div>
         </div>
-        <section class="panel" id="payslipPrintArea" style="margin-top:18px;">
-          <div id="payslipDetail"></div>
-        </section>
+
       </section>
 
       <section id="monthlyPage" class="hidden">
@@ -1899,6 +1904,17 @@
       }
     }
 
+    function stateHasBusinessData(target = state) {
+      return Boolean(
+        target && (
+          target.employees?.length ||
+          target.shifts?.length ||
+          target.schedules?.length ||
+          Object.keys(target.payrollExtras || {}).length
+        )
+      );
+    }
+
     async function syncFromCloud() {
       if (!cloudMode || !cloudClient) return;
       try {
@@ -1908,7 +1924,11 @@
           .eq("id", cloudStateId)
           .single();
         if (error || !data || !data.data) {
-          await saveCloudNow();
+          if (stateHasBusinessData()) {
+            await saveCloudNow();
+          } else {
+            updateCloudStatus("クラウド未作成");
+          }
           return;
         }
         applySharedData(data.data);
@@ -2728,8 +2748,13 @@
         return;
       }
       const month = payslipMonth.value || monthKey(new Date());
-      const calc = payrollForEmployee(employee, month, currentPayExtras(employee, month));
-      payslipDetail.innerHTML = payslipCardHtml(employee, month, calc);
+      try {
+        const calc = payrollForEmployee(employee, month, currentPayExtras(employee, month));
+        payslipDetail.innerHTML = payslipCardHtml(employee, month, calc);
+      } catch (error) {
+        console.error(error);
+        payslipDetail.innerHTML = `<div class="empty">給料明細を表示できませんでした。画面を更新しても直らない場合は、バックアップを取ってから確認してください。<br><small>${escapeHtml(error?.message || "計算エラー")}</small></div>`;
+      }
     }
 
     function payslipCardHtml(employee, month, calc) {
@@ -2951,7 +2976,7 @@
       };
       const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + value, 0);
       const netPay = grossPay - totalDeductions;
-      return { employee, shifts, hours, days, basePay, jobAllowance, extra, transportAllowance, taxablePay, grossPay, deductions, totalDeductions, netPay, totalPay: netPay };
+      return { employee, month, shifts, hours, days, basePay, jobAllowance, extra, transportAllowance, taxablePay, grossPay, deductions, totalDeductions, netPay, totalPay: netPay };
     }
 
     function exportMonthlyCsv() {
@@ -3317,3 +3342,7 @@
   </script>
 </body>
 </html>
+
+
+
+
