@@ -3260,6 +3260,9 @@
       return dateKeyLocal(date);
     }
 
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
     function dateKeyLocal(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -3342,6 +3345,7 @@
   </script>
 </body>
 </html>
+
 
 
 
