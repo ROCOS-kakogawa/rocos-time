@@ -1355,7 +1355,7 @@
           </div>
           <div class="row">
             <button class="btn" id="savePayExtras" type="button">加算時間を保存</button>
-            <span class="small-note">加算額は 時給 × 1.25 × 時間 で計算します。</span>
+            <span class="small-note">加算額は、基本給に通常分が入っているため 時給 × 0.25 × 時間 で計算します。</span>
           </div>
           <h3 style="margin-top:18px;">有給消化</h3>
           <div class="three">
@@ -2943,7 +2943,7 @@
         nightHours: Number(savedExtra.nightHours || 0)
       };
       const autoExtra = automaticPremiumHours(shifts);
-      const premiumRate = Number(employee.wage || 0) * 1.25;
+      const premiumRate = Number(employee.wage || 0) * 0.25;
       const extra = {
         overtimeHours: roundHours(autoExtra.overtimeHours + Number(manualExtra.overtimeHours || 0)),
         holidayHours: roundHours(autoExtra.holidayHours + Number(manualExtra.holidayHours || 0)),
@@ -3345,6 +3345,7 @@
   </script>
 </body>
 </html>
+
 
 
 
