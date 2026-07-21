@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
@@ -1174,7 +1174,7 @@
             <div class="three">
               <div class="field">
                 <label for="childCareSupport">子供子育て支援金</label>
-                <input id="childCareSupport" type="number" min="0" step="1" readonly placeholder="自動計算">
+                <input id="childCareSupport" type="number" min="0" step="1" placeholder="0">
               </div>
             </div>
             <div class="field">
@@ -2964,7 +2964,6 @@
       const employmentInsuranceAuto = calculateEmploymentInsurance(taxablePay + transportAllowance);
       const socialInsuranceTotal = Number(employee.socialInsurance || 0) + Number(employee.pensionDeduction || 0) + Number(employee.careInsuranceDeduction || 0) + employmentInsuranceAuto;
       const incomeTaxAuto = calculateEstimatedIncomeTax(taxablePay - socialInsuranceTotal);
-      const childCareSupportAuto = calculateChildCareSupport(grossPay, month);
       const deductions = {
         socialInsurance: Number(employee.socialInsurance || 0),
         pensionDeduction: Number(employee.pensionDeduction || 0),
@@ -2972,7 +2971,7 @@
         employmentInsuranceDeduction: employmentInsuranceAuto,
         incomeTax: incomeTaxAuto,
         residentTax: residentTaxForMonth(employee, month),
-        childCareSupport: childCareSupportAuto
+        childCareSupport: Number(employee.childCareSupport || 0)
       };
       const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + value, 0);
       const netPay = grossPay - totalDeductions;
